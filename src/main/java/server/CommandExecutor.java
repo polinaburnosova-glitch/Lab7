@@ -6,6 +6,7 @@ import common.model.User;
 import common.network.*;
 import server.database.UserDAO;
 import server.manager.CollectionManager;
+import java.util.Collections;
 import java.util.Deque;
 
 public class CommandExecutor {
@@ -166,7 +167,7 @@ public class CommandExecutor {
         if (user == null) {
             return new Response(ResponseStatus.UNAUTHORIZED, "Неверный логин или пароль");
         }
-        return new Response(ResponseStatus.OK, "Авторизация успешна", null);
+        return new Response(ResponseStatus.OK, "Авторизация успешна", Collections.singletonList(user));
     }
 
     private Response handleRegister(Object[] args) {

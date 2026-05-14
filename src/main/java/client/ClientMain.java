@@ -33,7 +33,6 @@ public class ClientMain {
 
         try {
             client.connect();
-            System.out.println("Подключено к серверу " + host + ":" + port);
 
             Scanner scanner = new Scanner(System.in);
             User currentUser = null;
@@ -116,8 +115,11 @@ public class ClientMain {
         client.sendRequest(request);
         Response response = client.receiveResponse();
 
-        if (response.getStatus() == ResponseStatus.OK && response.getData() instanceof User) {
-            User user = (User) response.getData();
+        if (response.getStatus() == ResponseStatus.OK
+                && response.getData() != null
+                && !response.getData().isEmpty()
+                && response.getData().get(0) instanceof User) {
+            User user = (User) response.getData().get(0);
             client.setCurrentUser(user);
             return user;
         } else {

@@ -1,5 +1,6 @@
 package server;
 
+import common.network.CommandType;
 import common.network.Request;
 import common.network.Response;
 import java.io.*;
@@ -36,14 +37,22 @@ public class ThreadPoolServer {
         try (ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
              ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream())) {
 
-            Request request = (Request) ois.readObject();
-            System.out.println("Команда: " + request.getCommandType());
+            while (true) {
+                Request request = (Request) ois.readObject();
+                System.out.println("Команда: " + request.getCommandType());
 
-            Response response = commandExecutor.execute(request);
+                Response response = commandExecutor.execute(request);
 
-            oos.writeObject(response);
-            oos.flush();
+                oos.writeObject(response);
+                oos.flush();
+                oos.reset();
 
+                if (request.getCommandType() == CommandType.EXIT) {
+                    break;
+                }
+            }
+        } catch (EOFException e) {
+            // клиент закрыл соединение
         } catch (IOException | ClassNotFoundException e) {
             System.err.println("Ошибка: " + e.getMessage());
         }
