@@ -1,9 +1,8 @@
 package server;
 
-import server.database.DatabaseManager;
-import server.database.HumanBeingDAO;
 import server.manager.CollectionManager;
 import common.EnvLoader;
+import server.database.DatabaseManager;
 
 public class ServerMain {
 
@@ -25,12 +24,11 @@ public class ServerMain {
         ThreadPoolServer server = new ThreadPoolServer(port, commandExecutor);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("Завершение работы сервера...");
-            DatabaseManager.closeConnection();
+            System.out.println("Остановка...");
             server.stop();
+            DatabaseManager.closeConnection();
         }));
 
-        System.out.println("Сервер запущен на порту " + port);
         server.start();
     }
 }

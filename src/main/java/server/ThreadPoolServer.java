@@ -12,8 +12,7 @@ public class ThreadPoolServer {
     private final int port;
     private final CommandExecutor commandExecutor;
     private volatile boolean running = true;
-
-    private final ExecutorService acceptPool = Executors.newCachedThreadPool();
+    private final ExecutorService pool = Executors.newCachedThreadPool();
 
     public ThreadPoolServer(int port, CommandExecutor commandExecutor) {
         this.port = port;
@@ -22,16 +21,14 @@ public class ThreadPoolServer {
 
     public void start() {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("ThreadPoolServer запущен на порту " + port);
-            System.out.println("Ожидание подключений");
+            System.out.println("Сервер запущен на порту " + port);
 
             while (running) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("Клиент подключился: " + clientSocket.getInetAddress());
-                acceptPool.submit(() -> handleClient(clientSocket));
+                pool.submit(() -> handleClient(clientSocket));
             }
         } catch (IOException e) {
-            System.err.println("Ошибка сервера: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -40,22 +37,20 @@ public class ThreadPoolServer {
              ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream())) {
 
             Request request = (Request) ois.readObject();
-            System.out.println("Получена команда: " + request.getCommandType());
+            System.out.println("Команда: " + request.getCommandType());
 
             Response response = commandExecutor.execute(request);
 
             oos.writeObject(response);
             oos.flush();
-            System.out.println("Ответ отправлен");
 
         } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Ошибка при обработке клиента: " + e.getMessage());
+            System.err.println("Ошибка: " + e.getMessage());
         }
     }
 
     public void stop() {
         running = false;
-        acceptPool.shutdown();
-        System.out.println("Сервер остановлен");
+        pool.shutdown();
     }
 }
