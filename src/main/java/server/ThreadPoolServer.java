@@ -3,6 +3,7 @@ package server;
 import common.network.CommandType;
 import common.network.Request;
 import common.network.Response;
+import common.network.ResponseStatus;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -34,14 +35,23 @@ public class ThreadPoolServer {
     }
 
     private void handleClient(Socket clientSocket) {
-        try (ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
-             ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream())) {
+        // Сначала OOS: клиент в конструкторе OIS ждёт заголовок потока с этой стороны.
+        try (ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream());
+             ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream())) {
 
             while (true) {
                 Request request = (Request) ois.readObject();
                 System.out.println("Команда: " + request.getCommandType());
 
-                Response response = commandExecutor.execute(request);
+                Response response;
+                try {
+                    response = commandExecutor.execute(request);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    response = new Response(
+                            ResponseStatus.SERVER_ERROR,
+                            "Внутренняя ошибка сервера: " + ex.getMessage());
+                }
 
                 oos.writeObject(response);
                 oos.flush();
