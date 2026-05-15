@@ -35,7 +35,6 @@ public class ThreadPoolServer {
     }
 
     private void handleClient(Socket clientSocket) {
-        // Сначала OOS: клиент в конструкторе OIS ждёт заголовок потока с этой стороны.
         try (ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream());
              ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream())) {
 
@@ -62,7 +61,7 @@ public class ThreadPoolServer {
                 }
             }
         } catch (EOFException e) {
-            // клиент закрыл соединение
+
         } catch (IOException | ClassNotFoundException e) {
             System.err.println("Ошибка: " + e.getMessage());
         }
