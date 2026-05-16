@@ -7,8 +7,30 @@ import common.network.Request;
 import common.network.Response;
 import java.io.IOException;
 
+/**
+ * Команда FILTER_BY_MOOD - фильтрация элементов коллекции по настроению.
+ *
+ * <p>Отправляет запрос на сервер для получения всех объектов HumanBeing,
+ * у которых настроение (mood) совпадает с указанным.</p>
+ *
+ * @author Полина
+ * @version 1.0
+ * @since 2026-05-16
+ */
 public class FilterByMoodCommand implements Command {
 
+    /**
+     * Выполняет команду FILTER_BY_MOOD.
+     *
+     * <p>Проверяет наличие аргумента с настроением, преобразует его в enum Mood,
+     * формирует запрос на сервер и отправляет его. При успешном выполнении
+     * выводит отфильтрованные элементы коллекции.</p>
+     *
+     * @param client клиент для отправки запроса на сервер
+     * @param argument аргумент команды (настроение: SORROW, LONGING, GLOOM, APATHY)
+     * @throws IOException если произошла ошибка ввода-вывода при обмене с сервером
+     * @throws ClassNotFoundException если не удалось десериализовать ответ сервера
+     */
     @Override
     public void execute(SimpleClient client, String argument) throws IOException, ClassNotFoundException {
         if (argument == null) {
@@ -34,4 +56,3 @@ public class FilterByMoodCommand implements Command {
         }
     }
 }
-

@@ -6,7 +6,23 @@ import java.time.LocalDateTime;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
+/**
+ * Data Access Object для работы с таблицей human_beings в БД.
+ * Обеспечивает сохранение, загрузку, обновление и удаление объектов HumanBeing.
+ *
+ * @author Полина
+ * @version 1.0
+ * @since 2026-05-16
+ */
 public class HumanBeingDAO {
+
+    /**
+     * Сохраняет новый объект HumanBeing в БД.
+     *
+     * @param human объект для сохранения
+     * @param ownerUsername имя владельца объекта
+     * @return true если сохранение успешно, false иначе
+     */
     public static boolean save(HumanBeing human, String ownerUsername) {
         String sql = "INSERT INTO human_beings (name, coordinate_x, coordinate_y, creation_date, " +
                 "real_hero, has_toothpick, impact_speed, soundtrack_name, weapon_type, " +
@@ -34,13 +50,17 @@ public class HumanBeingDAO {
                 human.setId(rs.getLong(1));
             }
             return true;
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
             return false;
         }
     }
 
+    /**
+     * Загружает все объекты HumanBeing из БД вместе с именами владельцев.
+     *
+     * @return коллекция всех объектов из БД
+     */
     public static Deque<HumanBeing> loadAll() {
         Deque<HumanBeing> collection = new ArrayDeque<>();
         String sql = "SELECT h.*, u.username as owner_name " +
@@ -55,14 +75,20 @@ public class HumanBeingDAO {
                 HumanBeing human = mapResultSetToHuman(rs);
                 collection.add(human);
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
 
         return collection;
     }
 
+    /**
+     * Обновляет существующий объект HumanBeing в БД.
+     *
+     * @param human объект с новыми данными
+     * @param ownerUsername имя владельца для проверки прав
+     * @return true если обновление успешно, false иначе
+     */
     public static boolean update(HumanBeing human, String ownerUsername) {
         String sql = "UPDATE human_beings SET " +
                 "name = ?, coordinate_x = ?, coordinate_y = ?, creation_date = ?, " +
@@ -89,13 +115,19 @@ public class HumanBeingDAO {
 
             int rowsAffected = stmt.executeUpdate();
             return rowsAffected > 0;
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
             return false;
         }
     }
 
+    /**
+     * Удаляет объект HumanBeing из БД по ID.
+     *
+     * @param id ID объекта для удаления
+     * @param ownerUsername имя владельца для проверки прав
+     * @return true если удаление успешно, false иначе
+     */
     public static boolean delete(long id, String ownerUsername) {
         String sql = "DELETE FROM human_beings WHERE id = ? AND owner_id = (SELECT id FROM users WHERE username = ?)";
 
@@ -106,13 +138,19 @@ public class HumanBeingDAO {
 
             int rowsAffected = stmt.executeUpdate();
             return rowsAffected > 0;
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
             return false;
         }
     }
 
+    /**
+     * Проверяет, существует ли объект с указанным ID и принадлежит ли он пользователю.
+     *
+     * @param id ID объекта
+     * @param ownerUsername имя владельца
+     * @return true если объект существует и принадлежит пользователю
+     */
     public static boolean existsAndOwnedBy(long id, String ownerUsername) {
         String sql = "SELECT 1 FROM human_beings h " +
                 "JOIN users u ON h.owner_id = u.id " +
@@ -125,13 +163,19 @@ public class HumanBeingDAO {
             stmt.setString(2, ownerUsername);
             ResultSet rs = stmt.executeQuery();
             return rs.next();
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
             return false;
         }
     }
 
+    /**
+     * Преобразует текущую строку ResultSet в объект HumanBeing.
+     *
+     * @param rs ResultSet с данными
+     * @return объект HumanBeing
+     * @throws SQLException при ошибке чтения
+     */
     private static HumanBeing mapResultSetToHuman(ResultSet rs) throws SQLException {
         Long id = rs.getLong("id");
         String name = rs.getString("name");
@@ -150,9 +194,7 @@ public class HumanBeingDAO {
         Car car = new Car(carCool);
         String owner = rs.getString("owner_name");
 
-        HumanBeing human = new HumanBeing(id, creationDate, name, coordinates, realHero, hasToothpick,
+        return new HumanBeing(id, creationDate, name, coordinates, realHero, hasToothpick,
                 impactSpeed, soundtrackName, weaponType, mood, car, owner);
-        return human;
     }
 }
-

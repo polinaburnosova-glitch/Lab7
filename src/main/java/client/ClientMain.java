@@ -12,8 +12,24 @@ import common.network.ResponseStatus;
 import java.io.IOException;
 import java.util.Scanner;
 
+/**
+ * Главный класс клиентского приложения.
+ *
+ * <p>Обеспечивает запуск клиента, авторизацию пользователя и основной цикл
+ * обработки команд. Поддерживает как интерактивный режим, так и выполнение
+ * скриптов из файлов.</p>
+ *
+ * @author Полина
+ * @version 1.0
+ * @since 2026-05-16
+ */
 public class ClientMain {
 
+    /**
+     * Точка входа в клиентское приложение.
+     *
+     * @param args аргументы командной строки: [host] [port]
+     */
     public static void main(String[] args) {
         String host = EnvLoader.get("CLIENT_HOST", "localhost");
         int port = EnvLoader.getInt("CLIENT_PORT", 5555);
@@ -105,6 +121,15 @@ public class ClientMain {
         }
     }
 
+    /**
+     * Выполняет вход пользователя в систему.
+     *
+     * @param scanner сканер для чтения ввода
+     * @param client клиент для отправки запросов
+     * @return объект User при успешном входе, иначе null
+     * @throws IOException при ошибке сетевого соединения
+     * @throws ClassNotFoundException при ошибке десериализации
+     */
     private static User login(Scanner scanner, SimpleClient client) throws IOException, ClassNotFoundException {
         System.out.print("Логин: ");
         String username = scanner.nextLine().trim();
@@ -128,6 +153,15 @@ public class ClientMain {
         }
     }
 
+    /**
+     * Регистрирует нового пользователя.
+     *
+     * @param scanner сканер для чтения ввода
+     * @param client клиент для отправки запросов
+     * @return null (после регистрации требуется отдельный вход)
+     * @throws IOException при ошибке сетевого соединения
+     * @throws ClassNotFoundException при ошибке десериализации
+     */
     private static User register(Scanner scanner, SimpleClient client) throws IOException, ClassNotFoundException {
         System.out.print("Придумайте логин: ");
         String username = scanner.nextLine().trim();

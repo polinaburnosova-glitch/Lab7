@@ -10,17 +10,43 @@ import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * Многопоточный сервер с пулом потоков.
+ * Использует CachedThreadPool для обработки клиентских подключений.
+ *
+ * @author Полина
+ * @version 1.0
+ * @since 2026-05-16
+ */
 public class ThreadPoolServer {
+
+    /** Порт для прослушивания подключений. */
     private final int port;
+
+    /** Исполнитель команд. */
     private final CommandExecutor commandExecutor;
+
+    /** Флаг работы сервера. */
     private volatile boolean running = true;
+
+    /** Пул потоков для обработки клиентов. */
     private final ExecutorService pool = Executors.newCachedThreadPool();
 
+    /**
+     * Конструктор сервера.
+     *
+     * @param port порт для прослушивания
+     * @param commandExecutor исполнитель команд
+     */
     public ThreadPoolServer(int port, CommandExecutor commandExecutor) {
         this.port = port;
         this.commandExecutor = commandExecutor;
     }
 
+    /**
+     * Запускает сервер.
+     * Принимает клиентские подключения и передаёт их в пул потоков.
+     */
     public void start() {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Сервер запущен на порту " + port);
@@ -34,6 +60,11 @@ public class ThreadPoolServer {
         }
     }
 
+    /**
+     * Обрабатывает одного клиента.
+     *
+     * @param clientSocket сокет клиента
+     */
     private void handleClient(Socket clientSocket) {
         try (ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream());
              ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream())) {
@@ -61,12 +92,15 @@ public class ThreadPoolServer {
                 }
             }
         } catch (EOFException e) {
-
         } catch (IOException | ClassNotFoundException e) {
             System.err.println("Ошибка: " + e.getMessage());
         }
     }
 
+    /**
+     * Останавливает сервер.
+     * Закрывает пул потоков и прекращает приём подключений.
+     */
     public void stop() {
         running = false;
         pool.shutdown();

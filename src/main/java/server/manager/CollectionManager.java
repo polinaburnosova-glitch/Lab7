@@ -10,27 +10,20 @@ import java.util.stream.Collectors;
 
 /**
  * Менеджер коллекции объектов HumanBeing на сервере.
- *
- * <p>Обеспечивает хранение, управление и операции над коллекцией объектов
- * HumanBeing. Коллекция реализована как {@link ArrayDeque} для эффективного
- * доступа к первому и последнему элементам.</p>
- *
- * <p>Все операции над коллекцией синхронизированы с помощью {@link ReentrantReadWriteLock}
- * для потокобезопасного доступа.</p>
+ * Обеспечивает хранение, управление и операции над коллекцией.
+ * Все операции синхронизированы с помощью ReentrantReadWriteLock.
  *
  * @author Полина
  * @version 2.0
- * @since 2026-05-14
+ * @since 2026-05-16
  */
 public class CollectionManager {
 
     private final Deque<HumanBeing> collection = new ArrayDeque<>();
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
-
     /**
      * Загружает все объекты из базы данных в коллекцию в памяти.
-     * Вызывается при старте сервера.
      */
     public void loadFromDatabase() {
         lock.writeLock().lock();
@@ -43,13 +36,12 @@ public class CollectionManager {
         }
     }
 
-
     /**
      * Добавляет новый объект в коллекцию.
      *
      * @param human объект для добавления
      * @param ownerUsername имя владельца
-     * @return true если добавление успешно, false иначе
+     * @return true если добавление успешно
      */
     public boolean add(HumanBeing human, String ownerUsername) {
         boolean saved = HumanBeingDAO.save(human, ownerUsername);
@@ -69,7 +61,7 @@ public class CollectionManager {
      *
      * @param human объект с новыми данными
      * @param ownerUsername имя владельца
-     * @return true если обновление успешно, false иначе
+     * @return true если обновление успешно
      */
     public boolean update(HumanBeing human, String ownerUsername) {
         if (!HumanBeingDAO.existsAndOwnedBy(human.getId(), ownerUsername)) {
@@ -94,7 +86,7 @@ public class CollectionManager {
      *
      * @param id ID удаляемого объекта
      * @param ownerUsername имя владельца
-     * @return true если удаление успешно, false иначе
+     * @return true если удаление успешно
      */
     public boolean removeById(long id, String ownerUsername) {
         if (!HumanBeingDAO.existsAndOwnedBy(id, ownerUsername)) {
@@ -127,7 +119,6 @@ public class CollectionManager {
         }
     }
 
-
     /**
      * Возвращает копию коллекции.
      *
@@ -145,7 +136,7 @@ public class CollectionManager {
     /**
      * Возвращает размер коллекции.
      *
-     * @return количество элементов в коллекции
+     * @return количество элементов
      */
     public int size() {
         lock.readLock().lock();
@@ -159,7 +150,7 @@ public class CollectionManager {
     /**
      * Проверяет, пуста ли коллекция.
      *
-     * @return true если коллекция пуста, false иначе
+     * @return true если пуста
      */
     public boolean isEmpty() {
         lock.readLock().lock();
@@ -173,7 +164,7 @@ public class CollectionManager {
     /**
      * Находит элемент с минимальным ID.
      *
-     * @return элемент с минимальным ID или null, если коллекция пуста
+     * @return элемент с минимальным ID или null
      */
     public HumanBeing findMinById() {
         lock.readLock().lock();
@@ -187,10 +178,10 @@ public class CollectionManager {
     }
 
     /**
-     * Проверяет, является ли impactSpeed минимальным в коллекции.
+     * Проверяет, является ли impactSpeed минимальным.
      *
      * @param impactSpeed проверяемое значение
-     * @return true если значение минимальное, false иначе
+     * @return true если минимальное
      */
     public boolean isImpactSpeedMin(float impactSpeed) {
         lock.readLock().lock();
@@ -205,10 +196,10 @@ public class CollectionManager {
     }
 
     /**
-     * Проверяет, является ли impactSpeed максимальным в коллекции.
+     * Проверяет, является ли impactSpeed максимальным.
      *
      * @param impactSpeed проверяемое значение
-     * @return true если значение максимальное, false иначе
+     * @return true если максимальное
      */
     public boolean isImpactSpeedMax(float impactSpeed) {
         lock.readLock().lock();
@@ -223,11 +214,11 @@ public class CollectionManager {
     }
 
     /**
-     * Проверяет, существует ли объект с указанным ID и принадлежит ли он пользователю.
+     * Проверяет, существует ли объект с ID и принадлежит ли пользователю.
      *
      * @param id ID объекта
      * @param ownerUsername имя владельца
-     * @return true если объект существует и принадлежит пользователю
+     * @return true если существует и принадлежит
      */
     public boolean existsAndOwnedBy(long id, String ownerUsername) {
         lock.readLock().lock();
@@ -240,10 +231,10 @@ public class CollectionManager {
     }
 
     /**
-     * Возвращает первый элемент, принадлежащий указанному пользователю.
+     * Возвращает первый элемент, принадлежащий пользователю.
      *
      * @param ownerUsername имя владельца
-     * @return первый элемент пользователя или null
+     * @return первый элемент или null
      */
     public HumanBeing getFirstOwnedBy(String ownerUsername) {
         lock.readLock().lock();
@@ -260,7 +251,7 @@ public class CollectionManager {
     /**
      * Фильтрует коллекцию по настроению.
      *
-     * @param mood настроение для фильтрации
+     * @param mood настроение
      * @return отфильтрованная коллекция
      */
     public Deque<HumanBeing> filterByMood(Mood mood) {
@@ -278,7 +269,7 @@ public class CollectionManager {
     /**
      * Фильтрует коллекцию по префиксу названия саундтрека.
      *
-     * @param prefix префикс для фильтрации
+     * @param prefix префикс
      * @return отфильтрованная коллекция
      */
     public Deque<HumanBeing> filterBySoundtrack(String prefix) {
@@ -309,9 +300,9 @@ public class CollectionManager {
     }
 
     /**
-     * Возвращает строковое представление всех элементов коллекции.
+     * Возвращает строковое представление всех элементов.
      *
-     * @return строка со всеми элементами
+     * @return строка с элементами
      */
     public String show() {
         lock.readLock().lock();
@@ -365,9 +356,8 @@ public class CollectionManager {
         return "Элемент с минимальным ID (" + min.getId() + "):\n" + min;
     }
 
-
     /**
-     * Удаляет первый элемент в коллекции.
+     * Удаляет первый элемент коллекции.
      *
      * @return сообщение о результате
      */
@@ -384,7 +374,13 @@ public class CollectionManager {
         }
     }
 
-
+    /**
+     * Добавляет элемент, если его impactSpeed минимальный.
+     *
+     * @param human объект для добавления
+     * @param ownerUsername имя владельца
+     * @return сообщение о результате
+     */
     public String addIfMin(HumanBeing human, String ownerUsername) {
         if (isImpactSpeedMin(human.getImpactSpeed())) {
             boolean added = add(human, ownerUsername);
@@ -396,6 +392,13 @@ public class CollectionManager {
         return "Элемент не добавлен: impactSpeed не является минимальным";
     }
 
+    /**
+     * Добавляет элемент, если его impactSpeed максимальный.
+     *
+     * @param human объект для добавления
+     * @param ownerUsername имя владельца
+     * @return сообщение о результате
+     */
     public String addIfMax(HumanBeing human, String ownerUsername) {
         if (isImpactSpeedMax(human.getImpactSpeed())) {
             boolean added = add(human, ownerUsername);
@@ -407,6 +410,12 @@ public class CollectionManager {
         return "Элемент не добавлен: impactSpeed не является максимальным";
     }
 
+    /**
+     * Удаляет все элементы текущего пользователя.
+     *
+     * @param ownerUsername имя владельца
+     * @return сообщение о результате
+     */
     public String clear(String ownerUsername) {
         lock.writeLock().lock();
         try {
@@ -420,6 +429,14 @@ public class CollectionManager {
         }
     }
 
+    /**
+     * Обновляет объект по ID.
+     *
+     * @param id ID объекта
+     * @param human объект с новыми данными
+     * @param ownerUsername имя владельца
+     * @return true если обновление успешно
+     */
     public boolean update(long id, HumanBeing human, String ownerUsername) {
         if (!existsAndOwnedBy(id, ownerUsername)) {
             return false;
@@ -435,4 +452,3 @@ public class CollectionManager {
         }
     }
 }
-

@@ -4,8 +4,21 @@ import server.manager.CollectionManager;
 import common.EnvLoader;
 import server.database.DatabaseManager;
 
+/**
+ * Главный класс серверного приложения.
+ * Загружает коллекцию из БД, создаёт исполнитель команд и запускает сервер.
+ *
+ * @author Полина
+ * @version 1.0
+ * @since 2026-05-16
+ */
 public class ServerMain {
 
+    /**
+     * Точка входа в серверное приложение.
+     *
+     * @param args аргументы командной строки (порт)
+     */
     public static void main(String[] args) {
         int port = EnvLoader.getInt("SERVER_PORT", 5555);
         if (args.length > 0) {

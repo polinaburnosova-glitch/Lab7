@@ -9,14 +9,35 @@ import server.manager.CollectionManager;
 import java.util.Collections;
 import java.util.Deque;
 
+/**
+ * Исполнитель команд на сервере.
+ * Получает запрос от клиента, выполняет соответствующую операцию
+ * над коллекцией через CollectionManager и формирует ответ.
+ *
+ * @author Полина
+ * @version 2.0
+ * @since 2026-05-16
+ */
 public class CommandExecutor {
 
+    /** Менеджер коллекции для выполнения операций. */
     private final CollectionManager collectionManager;
 
+    /**
+     * Конструктор исполнителя команд.
+     *
+     * @param collectionManager менеджер коллекции
+     */
     public CommandExecutor(CollectionManager collectionManager) {
         this.collectionManager = collectionManager;
     }
 
+    /**
+     * Выполняет команду из запроса и возвращает ответ.
+     *
+     * @param request запрос от клиента
+     * @return ответ сервера
+     */
     public Response execute(Request request) {
         CommandType type = request.getCommandType();
         Object[] args = request.getArgs();
@@ -156,6 +177,12 @@ public class CommandExecutor {
         }
     }
 
+    /**
+     * Обрабатывает команду LOGIN.
+     *
+     * @param args аргументы команды
+     * @return ответ с объектом User при успехе
+     */
     private Response handleLogin(Object[] args) {
         if (args == null || args.length < 2) {
             return validationError("Не указан логин или пароль");
@@ -170,6 +197,12 @@ public class CommandExecutor {
         return new Response(ResponseStatus.OK, "Авторизация успешна", Collections.singletonList(user));
     }
 
+    /**
+     * Обрабатывает команду REGISTER.
+     *
+     * @param args аргументы команды
+     * @return ответ о результате регистрации
+     */
     private Response handleRegister(Object[] args) {
         if (args == null || args.length < 2) {
             return validationError("Не указан логин или пароль");
@@ -188,6 +221,15 @@ public class CommandExecutor {
         return ok("Регистрация успешна. Теперь войдите через LOGIN");
     }
 
+    /**
+     * Безопасно извлекает аргумент из массива по индексу.
+     *
+     * @param args массив аргументов
+     * @param index индекс аргумента
+     * @param type ожидаемый тип
+     * @param <T> тип аргумента
+     * @return аргумент или null
+     */
     @SuppressWarnings("unchecked")
     private <T> T getArg(Object[] args, int index, Class<T> type) {
         if (args != null && args.length > index && type.isInstance(args[index])) {
@@ -196,26 +238,62 @@ public class CommandExecutor {
         return null;
     }
 
+    /**
+     * Создаёт успешный ответ.
+     *
+     * @param message текст сообщения
+     * @return объект Response
+     */
     private Response ok(String message) {
         return new Response(ResponseStatus.OK, message);
     }
 
+    /**
+     * Создаёт ответ-предупреждение.
+     *
+     * @param message текст сообщения
+     * @return объект Response
+     */
     private Response warning(String message) {
         return new Response(ResponseStatus.WARNING, message);
     }
 
+    /**
+     * Создаёт ответ "не найдено".
+     *
+     * @param message текст сообщения
+     * @return объект Response
+     */
     private Response notFound(String message) {
         return new Response(ResponseStatus.NOT_FOUND, message);
     }
 
+    /**
+     * Создаёт ответ с ошибкой валидации.
+     *
+     * @param message текст сообщения
+     * @return объект Response
+     */
     private Response validationError(String message) {
         return new Response(ResponseStatus.VALIDATION_ERROR, "Ошибка: " + message);
     }
 
+    /**
+     * Создаёт ответ с ошибкой сервера.
+     *
+     * @param message текст сообщения
+     * @return объект Response
+     */
     private Response serverError(String message) {
         return new Response(ResponseStatus.SERVER_ERROR, message);
     }
 
+    /**
+     * Создаёт ответ "неизвестная команда".
+     *
+     * @param type тип неизвестной команды
+     * @return объект Response
+     */
     private Response unknownCommand(CommandType type) {
         return new Response(ResponseStatus.UNKNOWN_COMMAND, "Команда не реализована: " + type);
     }

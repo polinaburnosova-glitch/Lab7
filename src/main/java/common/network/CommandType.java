@@ -13,8 +13,8 @@ import java.io.Serializable;
  * команд по сети между клиентом и сервером.</p>
  *
  * @author Полина
- * @version 1.0
- * @since 2026-04-20
+ * @version 2.0
+ * @since 2026-05-16
  * @see common.network.Request
  * @see common.model.HumanBeing
  */
@@ -111,6 +111,10 @@ public enum CommandType implements Serializable {
      * Требует путь к файлу в качестве аргумента.
      */
     EXECUTE_SCRIPT,
+
+    /** Авторизация пользователя (логин и пароль). */
     LOGIN,
+
+    /** Регистрация нового пользователя. */
     REGISTER
 }

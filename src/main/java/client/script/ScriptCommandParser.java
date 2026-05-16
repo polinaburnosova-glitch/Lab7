@@ -5,12 +5,36 @@ import common.network.CommandType;
 import common.network.Request;
 import common.EnvLoader;
 
+/**
+ * Парсер команд из скриптового файла.
+ *
+ * <p>Преобразует текстовые строки из файла скрипта в объекты Request,
+ * которые могут быть отправлены на сервер. Поддерживает все команды,
+ * доступные в интерактивном режиме, с фиксированным форматом аргументов.</p>
+ *
+ * @author Полина
+ * @version 1.0
+ * @since 2026-05-16
+ */
 public class ScriptCommandParser {
 
+    /** Разделитель аргументов в строке команды (регулярное выражение). */
     private static final String ARGUMENT_SEPARATOR = EnvLoader.get("SCRIPT_ARGUMENT_SEPARATOR", "\\s+");
+
+    /** Ожидаемое количество аргументов для команды ADD. */
     private static final int ADD_ARGS_COUNT = EnvLoader.getInt("SCRIPT_ADD_ARGS_COUNT", 10);
+
+    /** Ожидаемое количество аргументов для команды UPDATE. */
     private static final int UPDATE_ARGS_COUNT = EnvLoader.getInt("SCRIPT_UPDATE_ARGS_COUNT", 11);
 
+    /**
+     * Парсит строку команды и создаёт объект Request.
+     *
+     * @param command название команды (в верхнем регистре)
+     * @param argument строка с аргументами команды
+     * @return объект Request для отправки на сервер
+     * @throws IllegalArgumentException если команда неизвестна или аргументы некорректны
+     */
     public static Request parse(String command, String argument) {
 
         switch (command) {
@@ -45,6 +69,16 @@ public class ScriptCommandParser {
         }
     }
 
+    /**
+     * Парсит команду ADD, ADD_IF_MIN или ADD_IF_MAX.
+     *
+     * <p>Ожидает 10 аргументов: name, x, y, realHero, hasToothpick,
+     * impactSpeed, soundtrackName, weaponType, mood, carCool.</p>
+     *
+     * @param command название команды
+     * @param argument строка с аргументами
+     * @return Request для добавления объекта
+     */
     private static Request parseAddCommand(String command, String argument) {
         if (argument == null || argument.trim().isEmpty()) {
             throw new IllegalArgumentException("Недостаточно аргументов для " + command);
@@ -76,6 +110,15 @@ public class ScriptCommandParser {
         return new Request(cmdType, new Object[]{human}, null);
     }
 
+    /**
+     * Парсит команду UPDATE.
+     *
+     * <p>Ожидает 11 аргументов: id, name, x, y, realHero, hasToothpick,
+     * impactSpeed, soundtrackName, weaponType, mood, carCool.</p>
+     *
+     * @param argument строка с аргументами
+     * @return Request для обновления объекта
+     */
     private static Request parseUpdateCommand(String argument) {
         if (argument == null || argument.trim().isEmpty()) {
             throw new IllegalArgumentException("Недостаточно аргументов для UPDATE");
@@ -107,6 +150,12 @@ public class ScriptCommandParser {
         return new Request(CommandType.UPDATE, new Object[]{id, human}, null);
     }
 
+    /**
+     * Парсит команду REMOVE_BY_ID.
+     *
+     * @param argument строка с ID
+     * @return Request для удаления объекта
+     */
     private static Request parseRemoveByIdCommand(String argument) {
         if (argument == null) {
             throw new IllegalArgumentException("Не указан ID");
@@ -115,6 +164,12 @@ public class ScriptCommandParser {
         return new Request(CommandType.REMOVE_BY_ID, new Object[]{id}, null);
     }
 
+    /**
+     * Парсит команду FILTER_BY_MOOD.
+     *
+     * @param argument строка с названием настроения
+     * @return Request для фильтрации по настроению
+     */
     private static Request parseFilterByMoodCommand(String argument) {
         if (argument == null) {
             throw new IllegalArgumentException("Не указано настроение");
@@ -123,6 +178,12 @@ public class ScriptCommandParser {
         return new Request(CommandType.FILTER_BY_MOOD, new Object[]{mood}, null);
     }
 
+    /**
+     * Парсит команду FILTER_STARTS_WITH_SOUNDTRACK_NAME.
+     *
+     * @param argument строка с префиксом названия саундтрека
+     * @return Request для фильтрации по префиксу
+     */
     private static Request parseFilterBySoundtrackCommand(String argument) {
         if (argument == null) {
             throw new IllegalArgumentException("Не указана подстрока");

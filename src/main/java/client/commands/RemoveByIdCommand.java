@@ -6,8 +6,30 @@ import common.network.Request;
 import common.network.Response;
 import java.io.IOException;
 
+/**
+ * Команда REMOVE_BY_ID - удаление элемента коллекции по идентификатору.
+ *
+ * <p>Отправляет запрос на сервер для удаления объекта HumanBeing с указанным ID.
+ * Удалить можно только те элементы, которые принадлежат текущему пользователю.</p>
+ *
+ * @author Полина
+ * @version 1.0
+ * @since 2026-05-16
+ */
 public class RemoveByIdCommand implements Command {
 
+    /**
+     * Выполняет команду REMOVE_BY_ID.
+     *
+     * <p>Проверяет наличие аргумента ID, преобразует его в число,
+     * формирует запрос на сервер и отправляет его. При успешном удалении
+     * выводит подтверждение, иначе - сообщение об ошибке.</p>
+     *
+     * @param client клиент для отправки запроса на сервер
+     * @param argument аргумент команды (ID удаляемого элемента)
+     * @throws IOException если произошла ошибка ввода-вывода при обмене с сервером
+     * @throws ClassNotFoundException если не удалось десериализовать ответ сервера
+     */
     @Override
     public void execute(SimpleClient client, String argument) throws IOException, ClassNotFoundException {
         if (argument == null) {
