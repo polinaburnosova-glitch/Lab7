@@ -33,12 +33,14 @@ public class AnimationHelper {
      * Мигание при обновлении объекта
      */
     public static void animateUpdate(Node node) {
-        FillTransition fill = new FillTransition(Duration.millis(200), (javafx.scene.shape.Shape) node);
-        fill.setFromValue(Color.YELLOW);
-        fill.setToValue(Color.TRANSPARENT);
-        fill.setCycleCount(4);
-        fill.setAutoReverse(true);
-        fill.play();
+        ScaleTransition scale = new ScaleTransition(Duration.millis(200), node);
+        scale.setFromX(1);
+        scale.setFromY(1);
+        scale.setToX(1.05);
+        scale.setToY(1.05);
+        scale.setAutoReverse(true);
+        scale.setCycleCount(4);
+        scale.play();
     }
 
     /**
@@ -54,7 +56,7 @@ public class AnimationHelper {
                 new KeyFrame(Duration.millis(100), e -> {
                     javafx.scene.canvas.GraphicsContext gc = canvas.getGraphicsContext2D();
                     gc.setFill(Color.rgb(255, 255, 255, 0));
-                    gc.fillRect(x, y, 40, 40);
+                    gc.fillRect(x, y, 50, 50);
                 })
         );
         flash.setCycleCount(3);

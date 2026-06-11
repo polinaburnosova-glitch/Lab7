@@ -118,8 +118,8 @@ public class SimpleClient {
      * @throws IOException если соединение разорвано или произошла ошибка отправки
      */
     public void sendRequest(Request request) throws IOException {
-        if (!connected || socket == null || socket.isClosed() || !socket.isConnected()) {
-            throw new IOException("Нет соединения с сервером");
+        if (!isConnected()) {
+            connect();
         }
 
         if (currentUser != null && request.getUser() == null) {

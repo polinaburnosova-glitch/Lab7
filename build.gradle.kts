@@ -1,6 +1,7 @@
 plugins {
     java
     application
+    id("org.openjfx.javafxplugin") version "0.1.0"
 }
 
 group = "com.Lab7.1"
@@ -12,20 +13,35 @@ repositories {
 
 dependencies {
     implementation("org.postgresql:postgresql:42.7.3")
-
     implementation("io.github.cdimascio:dotenv-java:3.0.0")
+}
 
-    implementation("org.openjfx:javafx-controls:21")
-    implementation("org.openjfx:javafx-fxml:21")
-    implementation("org.openjfx:javafx-base:21")
+javafx {
+    version = "21"
+    modules = listOf("javafx.controls", "javafx.fxml")
 }
 
 application {
     mainClass.set("client.gui.Launcher")
 }
 
+tasks.register<Copy>("copyJavafxLibs") {
+    group = "build setup"
+    description = "Copy JavaFX runtime jars into lib/ for IntelliJ run configuration"
+    from({
+        configurations.runtimeClasspath.get().filter {
+            it.name.matches(Regex("javafx-(base|controls|fxml|graphics)-\\d+.*\\.jar"))
+        }
+    })
+    into(layout.projectDirectory.dir("lib"))
+}
+
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
+}
+
+tasks.processResources {
+    filteringCharset = "UTF-8"
 }
 
 tasks.withType<Javadoc> {
@@ -48,11 +64,4 @@ tasks.jar {
     from({
         configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
     })
-}
-
-tasks.withType<JavaExec> {
-    jvmArgs = listOf(
-        "--module-path", "lib",
-        "--add-modules", "javafx.controls,javafx.fxml,javafx.base"
-    )
 }

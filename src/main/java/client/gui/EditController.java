@@ -17,7 +17,6 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.io.IOException;
-import java.util.Optional;
 
 public class EditController {
 
@@ -25,6 +24,8 @@ public class EditController {
     private final User currentUser;
     private final HumanBeing editingHuman;
     private final boolean isEditMode;
+    private final boolean isAddIfMin;
+    private final boolean isAddIfMax;
     private Stage stage;
     private boolean saved = false;
 
@@ -39,11 +40,24 @@ public class EditController {
     private ComboBox<Mood> moodCombo;
     private ComboBox<Boolean> carCoolCombo;
 
+    // Конструктор для обычного ADD (без флагов)
     public EditController(SimpleClient client, User currentUser, HumanBeing human) {
+        this(client, currentUser, human, false, false);
+    }
+
+    // Конструктор для ADD_IF_MIN
+    public EditController(SimpleClient client, User currentUser, HumanBeing human, boolean isAddIfMin) {
+        this(client, currentUser, human, isAddIfMin, false);
+    }
+
+    // Основной конструктор
+    public EditController(SimpleClient client, User currentUser, HumanBeing human, boolean isAddIfMin, boolean isAddIfMax) {
         this.client = client;
         this.currentUser = currentUser;
         this.editingHuman = human;
         this.isEditMode = (human != null && human.getId() != null);
+        this.isAddIfMin = isAddIfMin;
+        this.isAddIfMax = isAddIfMax;
     }
 
     public void showAndWait() {
@@ -189,6 +203,12 @@ public class EditController {
                 human.setCreationDate(editingHuman.getCreationDate());
                 commandType = CommandType.UPDATE;
                 args = new Object[]{editingHuman.getId(), human};
+            } else if (isAddIfMin) {
+                commandType = CommandType.ADD_IF_MIN;
+                args = new Object[]{human};
+            } else if (isAddIfMax) {
+                commandType = CommandType.ADD_IF_MAX;
+                args = new Object[]{human};
             } else {
                 commandType = CommandType.ADD;
                 args = new Object[]{human};

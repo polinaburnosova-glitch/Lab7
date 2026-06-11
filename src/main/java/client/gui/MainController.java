@@ -5,6 +5,7 @@ import client.gui.drawing.ArenaCanvas;
 import client.gui.localization.LocalizationManager;
 import client.gui.drawing.AnimationHelper;
 import common.model.HumanBeing;
+import common.model.Mood;
 import common.model.User;
 import common.network.CommandType;
 import common.network.Request;
@@ -23,6 +24,7 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -51,6 +53,7 @@ public class MainController {
 
         tableView = createTableView();
 
+        // Поле фильтрации
         TextField filterField = new TextField();
         filterField.setPromptText(LocalizationManager.getString("filter"));
 
@@ -64,6 +67,7 @@ public class MainController {
             });
         });
 
+        // Сортировка
         ComboBox<String> sortCombo = new ComboBox<>();
         sortCombo.getItems().addAll("ID", "Name", "ImpactSpeed", "Owner");
         sortCombo.setValue("ID");
@@ -72,11 +76,12 @@ public class MainController {
         sortedData.comparatorProperty().bind(tableView.comparatorProperty());
         tableView.setItems(sortedData);
 
-        arenaCanvas = new ArenaCanvas(600, 400, data, currentUser);
+        // Canvas
+        arenaCanvas = new ArenaCanvas(650, 450, data, currentUser);
         arenaCanvas.setOnMouseClicked(event -> {
             Long id = arenaCanvas.getObjectAt(event.getX(), event.getY());
             if (id != null) {
-                HumanBinding selected = data.stream()
+                HumanBeing selected = data.stream()
                         .filter(h -> h.getId().equals(id))
                         .findFirst()
                         .orElse(null);
@@ -86,6 +91,7 @@ public class MainController {
             }
         });
 
+        // Кнопки управления
         Button addBtn = new Button(LocalizationManager.getString("add"));
         addBtn.setOnAction(e -> openEditDialog(null));
 
@@ -114,14 +120,46 @@ public class MainController {
 
         Button attackBtn = new Button(LocalizationManager.getString("attack"));
         attackBtn.setOnAction(e -> {
-            HumanBinding selected = tableView.getSelectionModel().getSelectedItem();
+            HumanBeing selected = tableView.getSelectionModel().getSelectedItem();
             if (selected != null && !selected.getOwner().equals(currentUser.getUsername())) {
                 attack(selected);
-            } else if (selected != null) {
-                showAlert("Нельзя атаковать своего героя");
+            } else {
+                showAlert("Выберите чужого героя для атаки");
             }
         });
 
+        Button infoBtn = new Button(LocalizationManager.getString("info"));
+        infoBtn.setOnAction(e -> {
+            try {
+                Request request = new Request(CommandType.INFO, null, currentUser);
+                client.sendRequest(request);
+                Response response = client.receiveResponse();
+                showAlert(response.getMessage());
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        Button clearBtn = new Button(LocalizationManager.getString("clear"));
+        clearBtn.setOnAction(e -> {
+            try {
+                Request request = new Request(CommandType.CLEAR, null, currentUser);
+                client.sendRequest(request);
+                Response response = client.receiveResponse();
+                showAlert(response.getMessage());
+                loadData();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        Button addIfMinBtn = new Button("Add if Min");
+        addIfMinBtn.setOnAction(e -> openEditDialog(null, true));
+
+        Button addIfMaxBtn = new Button("Add if Max");
+        addIfMaxBtn.setOnAction(e -> openEditDialog(null, false));
+
+        // Выбор языка
         ComboBox<String> langCombo = new ComboBox<>();
         langCombo.getItems().addAll("Русский", "Deutsch", "Magyar", "Español");
         langCombo.setValue("Русский");
@@ -133,14 +171,27 @@ public class MainController {
             arenaCanvas.redraw();
         });
 
+        // Фильтр по настроению
+        ComboBox<Mood> moodFilter = new ComboBox<>();
+        moodFilter.getItems().addAll(Mood.values());
+        moodFilter.setPromptText("Mood");
+        moodFilter.setOnAction(e -> {
+            Mood selected = moodFilter.getValue();
+            filteredData.setPredicate(human -> {
+                if (selected == null) return true;
+                return human.getMood() == selected;
+            });
+        });
+
+        // Панели
         HBox topPanel = new HBox(10,
                 new Label(LocalizationManager.getString("welcome") + ", " + currentUser.getUsername()),
                 new Region(), langCombo);
         HBox.setHgrow(topPanel.getChildren().get(1), Priority.ALWAYS);
 
-        HBox filterPanel = new HBox(10, filterField, sortCombo);
+        HBox filterPanel = new HBox(10, filterField, sortCombo, moodFilter);
 
-        HBox buttonPanel = new HBox(10, addBtn, editBtn, deleteBtn, refreshBtn);
+        HBox buttonPanel = new HBox(10, addBtn, editBtn, deleteBtn, refreshBtn, attackBtn, infoBtn, clearBtn, addIfMinBtn, addIfMaxBtn);
 
         VBox leftPanel = new VBox(10, filterPanel, tableView);
         VBox rightPanel = new VBox(10, arenaCanvas, buttonPanel);
@@ -223,12 +274,6 @@ public class MainController {
                     Platform.runLater(() -> {
                         data.setAll(list);
                         arenaCanvas.redraw();
-
-                        List<HumanBeing> top3 = data.stream()
-                                .sorted((a, b) -> Float.compare(b.getImpactSpeed(), a.getImpactSpeed()))
-                                .limit(3)
-                                .collect(Collectors.toList());
-
                     });
                 }
             } catch (Exception e) {
@@ -242,12 +287,18 @@ public class MainController {
         editController.showAndWait();
         if (editController.isSaved()) {
             loadData();
-
             if (human == null) {
                 AnimationHelper.animateAdd(arenaCanvas);
-            } else {
-                AnimationHelper.animateUpdate(arenaCanvas);
             }
+        }
+    }
+
+    private void openEditDialog(HumanBeing human, boolean isAddIfMin) {
+        EditController editController = new EditController(client, currentUser, human, isAddIfMin);
+        editController.showAndWait();
+        if (editController.isSaved()) {
+            loadData();
+            AnimationHelper.animateAdd(arenaCanvas);
         }
     }
 
@@ -323,18 +374,18 @@ public class MainController {
     }
 
     private void attack(HumanBeing defender) {
-        HumanBeing attacker = null;
-        for (HumanBeing h : data) {
-            if (h.getOwner().equals(currentUser.getUsername())) {
-                attacker = h;
-                break;
-            }
-        }
+        HumanBeing attacker = data.stream()
+                .filter(h -> h.getOwner().equals(currentUser.getUsername()))
+                .findFirst()
+                .orElse(null);
 
         if (attacker == null) {
             showAlert("У вас нет героя для атаки");
             return;
         }
+
+        final long attackerId = attacker.getId();
+        final long defenderId = defender.getId();
 
         double x = defender.getCoordinates().getX() * 50;
         double y = defender.getCoordinates().getY() * 50;
@@ -343,7 +394,7 @@ public class MainController {
         new Thread(() -> {
             try {
                 Request request = new Request(CommandType.ATTACK,
-                        new Object[]{attacker.getId(), defender.getId()}, currentUser);
+                        new Object[]{attackerId, defenderId}, currentUser);
                 client.sendRequest(request);
                 Response response = client.receiveResponse();
 
