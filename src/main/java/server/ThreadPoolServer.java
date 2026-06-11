@@ -29,8 +29,11 @@ public class ThreadPoolServer {
     /** Флаг работы сервера. */
     private volatile boolean running = true;
 
-    /** Пул потоков для обработки клиентов. */
-    private final ExecutorService pool = Executors.newCachedThreadPool();
+    /** Пул потоков для чтения запросов. */
+    private final ExecutorService readPool = Executors.newCachedThreadPool();
+
+    /** Пул потоков для отправки ответов. */
+    private final ExecutorService sendPool = Executors.newFixedThreadPool(10);
 
     /**
      * Конструктор сервера.
@@ -53,7 +56,7 @@ public class ThreadPoolServer {
 
             while (running) {
                 Socket clientSocket = serverSocket.accept();
-                pool.submit(() -> handleClient(clientSocket));
+                readPool.submit(() -> handleClient(clientSocket));
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -66,33 +69,31 @@ public class ThreadPoolServer {
      * @param clientSocket сокет клиента
      */
     private void handleClient(Socket clientSocket) {
-        try (ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream());
-             ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream())) {
-
+        try (ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
+             ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream())) {
             while (true) {
                 Request request = (Request) ois.readObject();
                 System.out.println("Команда: " + request.getCommandType());
-
-                Response response;
-                try {
-                    response = commandExecutor.execute(request);
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    response = new Response(
-                            ResponseStatus.SERVER_ERROR,
-                            "Внутренняя ошибка сервера: " + ex.getMessage());
-                }
-
-                oos.writeObject(response);
-                oos.flush();
-                oos.reset();
-
+                Thread processingThread = new Thread(() -> {
+                    Response response = commandExecutor.execute(request);
+                    sendPool.submit(() -> {
+                        try {
+                            oos.writeObject(response);
+                            oos.flush();
+                            System.out.println("Ответ отправлен");
+                        } catch (IOException e) {
+                            System.err.println("Ошибка при отправке: " + e.getMessage());
+                        }
+                    });
+                });
+                processingThread.start();
+                processingThread.join();
                 if (request.getCommandType() == CommandType.EXIT) {
                     break;
                 }
             }
         } catch (EOFException e) {
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (IOException | ClassNotFoundException | InterruptedException e) {
             System.err.println("Ошибка: " + e.getMessage());
         }
     }

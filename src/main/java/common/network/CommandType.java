@@ -116,5 +116,12 @@ public enum CommandType implements Serializable {
     LOGIN,
 
     /** Регистрация нового пользователя. */
-    REGISTER
+    REGISTER,
+
+    /**
+     * Проверка прав на элемент по ID (существует и принадлежит пользователю).
+     * Аргументы: id (Long), сообщение при отказе (String, необязательно).
+     */
+    CHECK_OWNERSHIP,
+    ATTACK
 }

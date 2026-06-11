@@ -1,8 +1,9 @@
 plugins {
     java
+    application
 }
 
-group = "com.lab7"
+group = "com.Lab7.1"
 version = "1.0-SNAPSHOT"
 
 repositories {
@@ -10,8 +11,17 @@ repositories {
 }
 
 dependencies {
-    implementation("io.github.cdimascio:dotenv-java:3.0.0")
     implementation("org.postgresql:postgresql:42.7.3")
+
+    implementation("io.github.cdimascio:dotenv-java:3.0.0")
+
+    implementation("org.openjfx:javafx-controls:21")
+    implementation("org.openjfx:javafx-fxml:21")
+    implementation("org.openjfx:javafx-base:21")
+}
+
+application {
+    mainClass.set("client.gui.Launcher")
 }
 
 tasks.withType<JavaCompile> {
@@ -30,7 +40,7 @@ tasks.withType<Javadoc> {
 
 tasks.jar {
     manifest {
-        attributes["Main-Class"] to "server.ServerMain"
+        attributes["Main-Class"] = "client.gui.Launcher"
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from(sourceSets.main.get().output)
@@ -38,4 +48,11 @@ tasks.jar {
     from({
         configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
     })
+}
+
+tasks.withType<JavaExec> {
+    jvmArgs = listOf(
+        "--module-path", "lib",
+        "--add-modules", "javafx.controls,javafx.fxml,javafx.base"
+    )
 }

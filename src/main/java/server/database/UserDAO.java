@@ -9,7 +9,6 @@ import java.sql.*;
 /**
  * Data Access Object для работы с таблицей users в БД.
  * Обеспечивает регистрацию, авторизацию и проверку существования пользователей.
- * Поддерживает два формата хэшей: SHA-256 (новый) и MD2 (старый для совместимости).
  *
  * @author Полина
  * @version 1.0
@@ -55,43 +54,11 @@ public class UserDAO {
      * @param password пароль в открытом виде
      * @return строка для сохранения в БД
      */
-    private static String hashPasswordForStorage(String password) {
-        return SHA256_PREFIX + sha256Hex(password);
+    private static String hashPassword(String password) {
+        String hash = sha256Hex(password);
+        return sha256Hex(password);
     }
 
-    /**
-     * Вычисляет MD2 хэш (старый формат, для совместимости с существующими записями).
-     *
-     * @param password пароль в открытом виде
-     * @return шестнадцатеричная строка MD2 хэша
-     * @throws NoSuchAlgorithmException если алгоритм MD2 недоступен
-     */
-    private static String legacyMd2Hex(String password) throws NoSuchAlgorithmException {
-        MessageDigest md = MessageDigest.getInstance("MD2");
-        return toHex(md.digest(password.getBytes(StandardCharsets.UTF_8)));
-    }
-
-    /**
-     * Проверяет, соответствует ли пароль сохранённому хэшу.
-     * Поддерживает оба формата хэшей.
-     *
-     * @param password пароль в открытом виде
-     * @param storedHash хэш из БД
-     * @return true если пароль верный
-     */
-    private static boolean passwordMatches(String password, String storedHash) {
-        if (storedHash == null) {
-            return false;
-        }
-        if (storedHash.startsWith(SHA256_PREFIX)) {
-            return storedHash.equals(hashPasswordForStorage(password));
-        }
-        try {
-            return storedHash.equals(legacyMd2Hex(password));
-        } catch (NoSuchAlgorithmException e) {
-            return false;
-        }
-    }
 
     /**
      * Регистрирует нового пользователя в БД.
@@ -101,7 +68,7 @@ public class UserDAO {
      * @return true если регистрация успешна, false иначе
      */
     public static boolean register(String username, String password) {
-        String hash = hashPasswordForStorage(password);
+        String hash = hashPassword(password);
         String sql = "INSERT INTO users (username, password_hash) VALUES (?, ?)";
 
         try (Connection conn = DatabaseManager.getConnection();
@@ -125,20 +92,19 @@ public class UserDAO {
      * @return объект User при успешной авторизации, null иначе
      */
     public static User login(String username, String password) {
-        String sql = "SELECT username, password_hash FROM users WHERE username = ?";
+        String hash = hashPassword(password);
+        String sql = "SELECT username, password_hash FROM users WHERE username = ? AND password_hash = ?";
 
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, username);
+            stmt.setString(2, hash);
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                String storedHash = rs.getString("password_hash");
-                if (passwordMatches(password, storedHash)) {
-                    return new User(rs.getString("username"), storedHash);
+                return new User(rs.getString("username"), rs.getString("password_hash"));
                 }
-            }
         } catch (SQLException e) {
             e.printStackTrace();
         }

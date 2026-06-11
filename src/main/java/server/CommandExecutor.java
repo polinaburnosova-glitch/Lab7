@@ -105,10 +105,18 @@ public class CommandExecutor {
                 case MIN_BY_ID:
                     return ok(collectionManager.minById());
 
+                case CHECK_OWNERSHIP:
+                    return handleCheckOwnership(args, user);
+
                 case REMOVE_BY_ID:
                     Long idToRemove = getArg(args, 0, Long.class);
                     if (idToRemove == null) {
                         return validationError("не указан id для удаления");
+                    }
+                    Response removeAccess = verifyOwnershipAccess(
+                            idToRemove, user.getUsername(), "Нет прав на удаление этого объекта");
+                    if (removeAccess != null) {
+                        return removeAccess;
                     }
                     boolean deleted = collectionManager.removeById(idToRemove, user.getUsername());
                     if (deleted) {
@@ -125,9 +133,17 @@ public class CommandExecutor {
 
                 case UPDATE:
                     Long updateId = getArg(args, 0, Long.class);
+                    if (updateId == null) {
+                        return validationError("не указан id для обновления");
+                    }
+                    Response updateAccess = verifyOwnershipAccess(
+                            updateId, user.getUsername(), "Нет прав на изменение этого объекта");
+                    if (updateAccess != null) {
+                        return updateAccess;
+                    }
                     HumanBeing updateHuman = getArg(args, 1, HumanBeing.class);
-                    if (updateId == null || updateHuman == null) {
-                        return validationError("не указан id или объект для обновления");
+                    if (updateHuman == null) {
+                        return validationError("не указан объект для обновления");
                     }
                     boolean updated = collectionManager.update(updateId, updateHuman, user.getUsername());
                     if (updated) {
@@ -169,6 +185,45 @@ public class CommandExecutor {
                 case EXECUTE_SCRIPT:
                     return ok("Команда выполнена");
 
+                case ATTACK:
+                    Long attackerId = getArg(args, 0, Long.class);
+                    Long defenderId = getArg(args, 1, Long.class);
+                    if (attackerId == null || defenderId == null) {
+                        return validationError("не указаны ID атакующего и защитника");
+                    }
+
+                    if (!collectionManager.existsAndOwnedBy(attackerId, user.getUsername())) {
+                        return new Response(ResponseStatus.FORBIDDEN, "Можно атаковать только своим героем");
+                    }
+
+                    HumanBeing attacker = collectionManager.findById(attackerId);
+                    HumanBeing defender = collectionManager.findById(defenderId);
+
+                    if (attacker == null || defender == null) {
+                        return notFound("Герой не найден");
+                    }
+
+                    int attackerPower = (int) attacker.getImpactSpeed();
+                    int defenderPower = (int) defender.getImpactSpeed();
+
+                    double chance = (double) attackerPower / (attackerPower + defenderPower);
+                    boolean attackerWins = Math.random() < chance;
+
+                    if (attackerWins) {
+                        attacker.setImpactSpeed(attackerPower + 10);
+                        defender.setImpactSpeed(Math.max(1, defenderPower / 2));
+                    } else {
+                        defender.setImpactSpeed(defenderPower + 10);
+                        attacker.setImpactSpeed(Math.max(1, attackerPower / 2));
+                    }
+                    collectionManager.update(attacker, attacker.getOwner());
+                    collectionManager.update(defender, defender.getOwner());
+
+                    return ok("Битва окончена! " + attacker.getName() + " " +
+                            (attackerWins ? "победил" : "проиграл") +
+                            ". Новые силы: " + attacker.getName() + "=" + attacker.getImpactSpeed() +
+                            ", " + defender.getName() + "=" + defender.getImpactSpeed());
+
                 default:
                     return unknownCommand(type);
             }
@@ -192,6 +247,7 @@ public class CommandExecutor {
 
         User user = UserDAO.login(username, password);
         if (user == null) {
+            System.out.println("Результат: пользователь НЕ найден");
             return new Response(ResponseStatus.UNAUTHORIZED, "Неверный логин или пароль");
         }
         return new Response(ResponseStatus.OK, "Авторизация успешна", Collections.singletonList(user));
@@ -230,6 +286,32 @@ public class CommandExecutor {
      * @param <T> тип аргумента
      * @return аргумент или null
      */
+    private Response handleCheckOwnership(Object[] args, User user) {
+        Long id = getArg(args, 0, Long.class);
+        String forbiddenMessage = getArg(args, 1, String.class);
+        if (forbiddenMessage == null) {
+            forbiddenMessage = "Нет прав на этот объект";
+        }
+        Response denied = verifyOwnershipAccess(id, user.getUsername(), forbiddenMessage);
+        return denied != null ? denied : ok("");
+    }
+
+    /**
+     * @return ответ с ошибкой или {@code null}, если доступ разрешён
+     */
+    private Response verifyOwnershipAccess(Long id, String username, String forbiddenMessage) {
+        if (id == null) {
+            return validationError("не указан id");
+        }
+        if (!collectionManager.existsById(id)) {
+            return notFound("Элемент с ID " + id + " не найден");
+        }
+        if (!collectionManager.existsAndOwnedBy(id, username)) {
+            return new Response(ResponseStatus.FORBIDDEN, forbiddenMessage);
+        }
+        return null;
+    }
+
     @SuppressWarnings("unchecked")
     private <T> T getArg(Object[] args, int index, Class<T> type) {
         if (args != null && args.length > index && type.isInstance(args[index])) {

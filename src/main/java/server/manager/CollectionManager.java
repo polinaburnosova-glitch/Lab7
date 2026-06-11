@@ -7,6 +7,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime;
 
 /**
  * Менеджер коллекции объектов HumanBeing на сервере.
@@ -44,6 +45,7 @@ public class CollectionManager {
      * @return true если добавление успешно
      */
     public boolean add(HumanBeing human, String ownerUsername) {
+        human.setCreationDate(LocalDateTime.now());
         boolean saved = HumanBeingDAO.save(human, ownerUsername);
         if (!saved) return false;
 
@@ -220,6 +222,15 @@ public class CollectionManager {
      * @param ownerUsername имя владельца
      * @return true если существует и принадлежит
      */
+    public boolean existsById(long id) {
+        lock.readLock().lock();
+        try {
+            return collection.stream().anyMatch(h -> h.getId() == id);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
     public boolean existsAndOwnedBy(long id, String ownerUsername) {
         lock.readLock().lock();
         try {
@@ -449,6 +460,18 @@ public class CollectionManager {
             return true;
         } finally {
             lock.writeLock().unlock();
+        }
+    }
+
+    public HumanBeing findById(long id) {
+        lock.readLock().lock();
+        try {
+            return collection.stream()
+                    .filter(h -> h.getId() == id)
+                    .findFirst()
+                    .orElse(null);
+        } finally {
+            lock.readLock().unlock();
         }
     }
 }

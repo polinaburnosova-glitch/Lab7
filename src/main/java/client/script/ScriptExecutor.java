@@ -1,5 +1,6 @@
 package client.script;
 
+import client.OwnershipVerifier;
 import client.SimpleClient;
 import common.network.Request;
 import common.network.Response;
@@ -96,6 +97,20 @@ public class ScriptExecutor {
                         }
                         execute(argument);
                         continue;
+                    }
+
+                    if (command.equals("UPDATE")) {
+                        long id = ScriptCommandParser.parseLeadingId(argument);
+                        if (!OwnershipVerifier.verify(client, id, "Нет прав на изменение этого объекта")) {
+                            System.err.println("Выполнение скрипта прервано");
+                            break;
+                        }
+                    } else if (command.equals("REMOVE_BY_ID")) {
+                        long id = ScriptCommandParser.parseLeadingId(argument);
+                        if (!OwnershipVerifier.verify(client, id, "Нет прав на удаление этого объекта")) {
+                            System.err.println("Выполнение скрипта прервано");
+                            break;
+                        }
                     }
 
                     Request request = ScriptCommandParser.parse(command, argument);

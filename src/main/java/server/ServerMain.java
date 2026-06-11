@@ -20,7 +20,7 @@ public class ServerMain {
      * @param args аргументы командной строки (порт)
      */
     public static void main(String[] args) {
-        int port = EnvLoader.getInt("SERVER_PORT", 5555);
+        int port = EnvLoader.getInt("SERVER_PORT", 5556);
         if (args.length > 0) {
             try {
                 port = Integer.parseInt(args[0]);

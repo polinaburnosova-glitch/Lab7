@@ -6,6 +6,7 @@ import common.network.Response;
 import java.io.*;
 import java.net.Socket;
 import java.net.ConnectException;
+import java.net.InetSocketAddress;
 
 /**
  * Простой TCP-клиент для взаимодействия с сервером.
@@ -79,7 +80,9 @@ public class SimpleClient {
         while (attempts < MAX_RECONNECT_ATTEMPTS) {
             try {
                 System.out.println("Попытка подключения " + (attempts + 1) + " из " + MAX_RECONNECT_ATTEMPTS);
-                socket = new Socket(host, port);
+                socket = new Socket();
+                socket.connect(new InetSocketAddress(host, port), 5000);
+                socket.setSoTimeout(5000);
 
                 outputStream = new ObjectOutputStream(socket.getOutputStream());
                 outputStream.flush();
@@ -115,7 +118,7 @@ public class SimpleClient {
      * @throws IOException если соединение разорвано или произошла ошибка отправки
      */
     public void sendRequest(Request request) throws IOException {
-        if (!connected || socket == null || socket.isClosed()) {
+        if (!connected || socket == null || socket.isClosed() || !socket.isConnected()) {
             throw new IOException("Нет соединения с сервером");
         }
 

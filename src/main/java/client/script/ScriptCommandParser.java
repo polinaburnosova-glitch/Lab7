@@ -35,6 +35,17 @@ public class ScriptCommandParser {
      * @return объект Request для отправки на сервер
      * @throws IllegalArgumentException если команда неизвестна или аргументы некорректны
      */
+    /**
+     * Извлекает ID из первого аргумента команды (update / remove_by_id).
+     */
+    public static long parseLeadingId(String argument) {
+        if (argument == null || argument.trim().isEmpty()) {
+            throw new IllegalArgumentException("Не указан ID");
+        }
+        String idPart = argument.trim().split(ARGUMENT_SEPARATOR)[0];
+        return Long.parseLong(idPart);
+    }
+
     public static Request parse(String command, String argument) {
 
         switch (command) {
