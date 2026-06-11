@@ -104,6 +104,5 @@ public class ThreadPoolServer {
      */
     public void stop() {
         running = false;
-        pool.shutdown();
     }
 }

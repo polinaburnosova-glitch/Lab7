@@ -282,6 +282,13 @@ public class HumanBeing implements Comparable<HumanBeing>, Serializable {
         return owner;
     }
 
+    public void setImpactSpeed(float impactSpeed) {
+        if (impactSpeed > 657) {
+            throw new IllegalArgumentException("impactSpeed не может быть больше 657");
+        }
+        this.impactSpeed = impactSpeed;
+    }
+
     /**
      * Сравнивает двух людей по ID.
      * Используется для сортировки коллекции по умолчанию.
