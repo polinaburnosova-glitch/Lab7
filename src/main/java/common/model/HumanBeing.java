@@ -41,7 +41,7 @@ public class HumanBeing implements Comparable<HumanBeing>, Serializable {
     /** Флаг, указывающий, есть ли у человека зубочистка. Не может быть null. */
     private final Boolean hasToothpick;
     /** Скорость удара. Максимальное значение - 657. */
-    private final float impactSpeed;
+    private float impactSpeed;
     /** Название саундтрека. Не может быть null или пустым. */
     private final String soundtrackName;
     /** Тип оружия. Не может быть null. */
