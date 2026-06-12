@@ -31,7 +31,7 @@ public class HumanBeing implements Comparable<HumanBeing>, Serializable {
     /** Имя человека. Не может быть null или пустым. */
     private final String name;
     /** Координаты местоположения человека. Не могут быть null. */
-    private final Coordinates coordinates;
+    private Coordinates coordinates;
 
     /** Дата и время создания записи (генерируется автоматически). */
     private LocalDateTime creationDate;
@@ -318,5 +318,9 @@ public class HumanBeing implements Comparable<HumanBeing>, Serializable {
                 realHero, hasToothpick, impactSpeed, soundtrackName, weaponType,
                 mood, car.getCool() ? "cool" : "not cool"
         );
+    }
+
+    public void setCoordinates(Coordinates coordinates) {
+        this.coordinates = coordinates;
     }
 }

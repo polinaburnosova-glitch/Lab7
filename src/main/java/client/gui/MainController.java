@@ -9,7 +9,6 @@ import common.model.HumanBeing;
 import common.model.Mood;
 import common.model.User;
 import common.model.WeaponType;
-import common.model.WeaponType;
 import common.network.CommandType;
 import common.network.Request;
 import common.network.Response;
@@ -26,8 +25,11 @@ import javafx.stage.Stage;
 import javafx.util.StringConverter;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
 
 import java.io.File;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -39,6 +41,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.time.format.DateTimeFormatter;
 
 public class MainController {
 
@@ -53,18 +56,31 @@ public class MainController {
     private ArenaCanvas arenaCanvas;
     private ScheduledExecutorService scheduler;
 
-    private TextField filterField;
-    private TextField soundtrackFilterField;
+    private TextField nameFilterField;
+    private TextField ownerFilterField;
+    private TextField minXFilterField;
+    private TextField maxXFilterField;
+    private TextField minYFilterField;
+    private TextField maxYFilterField;
+    private DatePicker fromDateFilter;
+    private DatePicker toDateFilter;
     private ComboBox<String> sortCombo;
     private ComboBox<Mood> moodFilter;
     private ComboBox<String> langCombo;
     private ComboBox<WeaponType> weaponFilter;
+    private CheckBox hasCarFilter;
+    private CheckBox hasToothpickFilter;
+
     private Label welcomeLabel;
     private Label tableLabel;
     private Label arenaLabel;
     private Label sortLabel;
     private Label tablePlaceholder;
     private int sortIndex;
+
+    private VBox crudButtons;
+    private VBox actionButtons;
+    private VBox specialButtons;
 
     private Button addBtn;
     private Button editBtn;
@@ -94,33 +110,39 @@ public class MainController {
         tablePlaceholder = new Label(LocalizationManager.getString("table.empty"));
         tableView.setPlaceholder(tablePlaceholder);
 
+        nameFilterField = new TextField();
+        nameFilterField.setPromptText(LocalizationManager.getString("filter.name"));
+        nameFilterField.textProperty().addListener((obs, old, val) -> scheduleFilter());
 
-        filterField = new TextField();
-        filterField.setPromptText(LocalizationManager.getString("filter"));
-        filterField.textProperty().addListener((obs, old, val) -> {
-            if (filterTimer != null) filterTimer.cancel();
-            filterTimer = new Timer();
-            filterTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    Platform.runLater(() -> applyFiltersAndSort());
-                }
-            }, 300);
-        });
+        ownerFilterField = new TextField();
+        ownerFilterField.setPromptText(LocalizationManager.getString("filter.owner"));
+        ownerFilterField.textProperty().addListener((obs, old, val) -> scheduleFilter());
 
-        soundtrackFilterField = new TextField();
-        soundtrackFilterField.setPromptText(LocalizationManager.getString("filter_soundtrack"));
-        soundtrackFilterField.textProperty().addListener((obs, old, val) -> {
-            if (filterTimer != null) filterTimer.cancel();
-            filterTimer = new Timer();
-            filterTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    Platform.runLater(() -> applyFiltersAndSort());
-                }
-            }, 300);
-        });
+        minXFilterField = new TextField();
+        minXFilterField.setPromptText(LocalizationManager.getString("filter.min_x"));
+        maxXFilterField = new TextField();
+        maxXFilterField.setPromptText(LocalizationManager.getString("filter.max_x"));
+        minXFilterField.textProperty().addListener((obs, old, val) -> scheduleFilter());
+        maxXFilterField.textProperty().addListener((obs, old, val) -> scheduleFilter());
 
+        minYFilterField = new TextField();
+        minYFilterField.setPromptText(LocalizationManager.getString("filter.min_y"));
+        maxYFilterField = new TextField();
+        maxYFilterField.setPromptText(LocalizationManager.getString("filter.max_y"));
+        minYFilterField.textProperty().addListener((obs, old, val) -> scheduleFilter());
+        maxYFilterField.textProperty().addListener((obs, old, val) -> scheduleFilter());
+
+        fromDateFilter = new DatePicker();
+        fromDateFilter.setPromptText(LocalizationManager.getString("filter.from_date"));
+        toDateFilter = new DatePicker();
+        toDateFilter.setPromptText(LocalizationManager.getString("filter.to_date"));
+        fromDateFilter.valueProperty().addListener((obs, old, val) -> scheduleFilter());
+        toDateFilter.valueProperty().addListener((obs, old, val) -> scheduleFilter());
+
+        hasCarFilter = new CheckBox(LocalizationManager.getString("filter.has_car"));
+        hasToothpickFilter = new CheckBox(LocalizationManager.getString("filter.has_toothpick"));
+        hasCarFilter.setOnAction(e -> scheduleFilter());
+        hasToothpickFilter.setOnAction(e -> scheduleFilter());
 
         sortCombo = new ComboBox<>();
         refreshSortComboItems();
@@ -128,7 +150,6 @@ public class MainController {
             sortIndex = sortCombo.getSelectionModel().getSelectedIndex();
             applyFiltersAndSort();
         });
-
 
         moodFilter = new ComboBox<>();
         moodFilter.getItems().add(null);
@@ -155,7 +176,6 @@ public class MainController {
         weaponFilter.setValue(null);
         weaponFilter.setOnAction(e -> applyFiltersAndSort());
 
-
         arenaCanvas = new ArenaCanvas(800, 600, allData, currentUser);
         arenaCanvas.setOnMouseClicked(event -> {
             Long id = arenaCanvas.getObjectAt(event.getX(), event.getY());
@@ -167,20 +187,7 @@ public class MainController {
             }
         });
 
-        addBtn = createButton("add", e -> openEditDialog(null, false, false));
-        editBtn = createButton("edit", e -> editSelectedFromTable());
-        deleteBtn = createButton("delete", e -> deleteSelectedFromTable());
-        refreshBtn = createButton("refresh", e -> loadData());
-        attackBtn = createButton("attack", e -> attackFromTable());
-        infoBtn = createButton("info", e -> runCommand(CommandType.INFO, null, false));
-        clearBtn = createButton("clear", e -> confirmAndClear());
-        helpBtn = createButton("help", e -> runCommand(CommandType.HELP, null, false));
-        scriptBtn = createButton("execute_script", e -> executeScript());
-        removeFirstBtn = createButton("remove_first", e -> runCommand(CommandType.REMOVE_FIRST, null, true));
-        minByIdBtn = createButton("min_by_id", e -> runCommand(CommandType.MIN_BY_ID, null, false));
-        addIfMinBtn = createButton("add_if_min", e -> openEditDialog(null, true, false));
-        addIfMaxBtn = createButton("add_if_max", e -> openEditDialog(null, false, true));
-
+        createButtons();
 
         langCombo = new ComboBox<>();
         langCombo.getItems().addAll(
@@ -195,54 +202,167 @@ public class MainController {
             refreshLocalizedTexts();
         });
 
-
         welcomeLabel = new Label(buildWelcomeText());
         tableLabel = new Label(LocalizationManager.getString("label.table"));
         arenaLabel = new Label(LocalizationManager.getString("label.arena"));
         sortLabel = new Label(LocalizationManager.getString("label.sort_by"));
 
+        GridPane filterPanel = createFilterPanel();
 
-        HBox topPanel = new HBox(10, welcomeLabel, new Region(), langCombo);
-        HBox.setHgrow(topPanel.getChildren().get(1), Priority.ALWAYS);
-
-
-        HBox filterPanel = new HBox(10, filterField, soundtrackFilterField, sortLabel, sortCombo, moodFilter, weaponFilter);
-
-
-        HBox buttonPanel = new HBox(10, addBtn, editBtn, deleteBtn, refreshBtn, attackBtn,
-                infoBtn, clearBtn, helpBtn, scriptBtn, removeFirstBtn, minByIdBtn, addIfMinBtn, addIfMaxBtn);
-        buttonPanel.setPadding(new Insets(10, 0, 0, 0));
-
+        HBox buttonPanel = createButtonPanel();
 
         VBox leftPanel = new VBox(8, tableLabel, filterPanel, tableView);
         VBox.setVgrow(tableView, Priority.ALWAYS);
 
-
         VBox rightPanel = new VBox(8, arenaLabel, arenaCanvas, buttonPanel);
         VBox.setVgrow(arenaCanvas, Priority.ALWAYS);
-
 
         HBox mainPanel = new HBox(20, leftPanel, rightPanel);
         HBox.setHgrow(leftPanel, Priority.ALWAYS);
         HBox.setHgrow(rightPanel, Priority.ALWAYS);
 
+        VBox topPanel = new VBox(5);
+        HBox welcomePanel = new HBox(10, welcomeLabel, new Region(), langCombo);
+        HBox.setHgrow(welcomePanel.getChildren().get(1), Priority.ALWAYS);
+        topPanel.getChildren().addAll(welcomePanel, new Separator());
 
         VBox root = new VBox(10, topPanel, mainPanel);
         root.setPadding(new Insets(10));
 
-
         tableView.setItems(displayedData);
 
-
-        Scene scene = new Scene(root, 1320, 760);
+        Scene scene = new Scene(root, 1400, 800);
         stage.setTitle(LocalizationManager.getString("app.title"));
         stage.setScene(scene);
         stage.setOnCloseRequest(e -> stop());
         stage.show();
 
-
         loadData();
         startAutoRefresh();
+    }
+
+    private void scheduleFilter() {
+        if (filterTimer != null) filterTimer.cancel();
+        filterTimer = new Timer();
+        filterTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                Platform.runLater(() -> applyFiltersAndSort());
+            }
+        }, 300);
+    }
+
+    private GridPane createFilterPanel() {
+        GridPane filterPanel = new GridPane();
+        filterPanel.setHgap(10);
+        filterPanel.setVgap(5);
+        filterPanel.setPadding(new Insets(5));
+        filterPanel.setStyle("-fx-border-color: lightgray; -fx-border-radius: 5; -fx-padding: 5;");
+
+        int row = 0;
+
+        filterPanel.add(new Label(LocalizationManager.getString("filter.name") + ":"), 0, row);
+        filterPanel.add(nameFilterField, 1, row);
+        filterPanel.add(new Label(LocalizationManager.getString("filter.owner") + ":"), 2, row);
+        filterPanel.add(ownerFilterField, 3, row);
+
+        row++;
+        filterPanel.add(new Label(LocalizationManager.getString("filter.x") + ":"), 0, row);
+        filterPanel.add(minXFilterField, 1, row);
+        filterPanel.add(new Label("-"), 2, row);
+        filterPanel.add(maxXFilterField, 3, row);
+
+        row++;
+        filterPanel.add(new Label(LocalizationManager.getString("filter.y") + ":"), 0, row);
+        filterPanel.add(minYFilterField, 1, row);
+        filterPanel.add(new Label("-"), 2, row);
+        filterPanel.add(maxYFilterField, 3, row);
+
+        row++;
+        filterPanel.add(new Label(LocalizationManager.getString("filter.date") + ":"), 0, row);
+        filterPanel.add(fromDateFilter, 1, row);
+        filterPanel.add(new Label("-"), 2, row);
+        filterPanel.add(toDateFilter, 3, row);
+
+        row++;
+        filterPanel.add(hasCarFilter, 0, row);
+        filterPanel.add(hasToothpickFilter, 1, row);
+        filterPanel.add(new Label(LocalizationManager.getString("label.sort_by") + ":"), 2, row);
+        filterPanel.add(sortCombo, 3, row);
+        filterPanel.add(new Label(LocalizationManager.getString("label.mood") + ":"), 4, row);
+        filterPanel.add(moodFilter, 5, row);
+        filterPanel.add(new Label(LocalizationManager.getString("label.weapon") + ":"), 6, row);
+        filterPanel.add(weaponFilter, 7, row);
+
+        return filterPanel;
+    }
+
+    private HBox createButtonPanel() {
+        HBox buttonPanel = new HBox(10);
+        buttonPanel.setPadding(new Insets(10, 0, 0, 0));
+
+        VBox crudGroup = new VBox(5);
+        crudGroup.setStyle("-fx-border-color: lightgray; -fx-border-radius: 5; -fx-padding: 5;");
+        Label crudLabel = new Label(LocalizationManager.getString("group.crud"));
+        crudLabel.setStyle("-fx-font-weight: bold;");
+        crudGroup.getChildren().add(crudLabel);
+        crudGroup.getChildren().addAll(addBtn, editBtn, deleteBtn, refreshBtn);
+
+        VBox actionGroup = new VBox(5);
+        actionGroup.setStyle("-fx-border-color: lightgray; -fx-border-radius: 5; -fx-padding: 5;");
+        Label actionLabel = new Label(LocalizationManager.getString("group.actions"));
+        actionLabel.setStyle("-fx-font-weight: bold;");
+        actionGroup.getChildren().add(actionLabel);
+        actionGroup.getChildren().addAll(attackBtn, infoBtn, clearBtn, helpBtn, scriptBtn);
+
+        VBox specialGroup = new VBox(5);
+        specialGroup.setStyle("-fx-border-color: lightgray; -fx-border-radius: 5; -fx-padding: 5;");
+        Label specialLabel = new Label(LocalizationManager.getString("group.special"));
+        specialLabel.setStyle("-fx-font-weight: bold;");
+        specialGroup.getChildren().add(specialLabel);
+        specialGroup.getChildren().addAll(removeFirstBtn, minByIdBtn, addIfMinBtn, addIfMaxBtn);
+
+        Stream.of(crudGroup, actionGroup, specialGroup)
+                .flatMap(group -> group.getChildren().stream())
+                .filter(node -> node instanceof Button)
+                .map(node -> (Button) node)
+                .forEach(btn -> {
+                    btn.setMaxWidth(Double.MAX_VALUE);
+                    btn.setPrefWidth(120);
+                });
+
+        buttonPanel.getChildren().addAll(crudGroup, actionGroup, specialGroup);
+        return buttonPanel;
+    }
+
+    private void createButtons() {
+        addBtn = createStyledButton("add", e -> openEditDialog(null, false, false));
+        editBtn = createStyledButton("edit", e -> editSelectedFromTable());
+        deleteBtn = createStyledButton("delete", e -> deleteSelectedFromTable());
+        refreshBtn = createStyledButton("refresh", e -> loadData());
+        attackBtn = createStyledButton("attack", e -> attackFromTable());
+        infoBtn = createStyledButton("info", e -> runCommand(CommandType.INFO, null, false));
+        clearBtn = createStyledButton("clear", e -> confirmAndClear());
+        helpBtn = createStyledButton("help", e -> runCommand(CommandType.HELP, null, false));
+        scriptBtn = createStyledButton("execute_script", e -> executeScript());
+        removeFirstBtn = createStyledButton("remove_first", e -> runCommand(CommandType.REMOVE_FIRST, null, true));
+        minByIdBtn = createStyledButton("min_by_id", e -> runCommand(CommandType.MIN_BY_ID, null, false));
+        addIfMinBtn = createStyledButton("add_if_min", e -> openEditDialog(null, true, false));
+        addIfMaxBtn = createStyledButton("add_if_max", e -> openEditDialog(null, false, true));
+    }
+
+    private Button createStyledButton(String key, EventHandler<ActionEvent> handler) {
+        Button button = new Button(LocalizationManager.getString(key));
+        button.setWrapText(true);
+        button.setPrefWidth(120);
+        button.setMaxWidth(Double.MAX_VALUE);
+        button.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 5;");
+        button.setOnAction(handler);
+
+        button.setOnMouseEntered(e -> button.setStyle("-fx-background-color: #45a049; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 5;"));
+        button.setOnMouseExited(e -> button.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 5;"));
+
+        return button;
     }
 
     private Button createButton(String key, EventHandler<ActionEvent> handler) {
@@ -320,17 +440,34 @@ public class MainController {
     }
 
     private void applyFiltersAndSort() {
-        String text = filterField.getText() == null ? "" : filterField.getText().trim().toLowerCase();
-        String soundtrackPrefix = soundtrackFilterField.getText() == null
-                ? "" : soundtrackFilterField.getText().trim().toLowerCase();
+        String nameText = nameFilterField.getText() == null ? "" : nameFilterField.getText().trim().toLowerCase();
+        String ownerText = ownerFilterField.getText() == null ? "" : ownerFilterField.getText().trim().toLowerCase();
+
+        Double minX = parseDoubleSafe(minXFilterField.getText());
+        Double maxX = parseDoubleSafe(maxXFilterField.getText());
+        Double minY = parseDoubleSafe(minYFilterField.getText());
+        Double maxY = parseDoubleSafe(maxYFilterField.getText());
+
+        LocalDateTime fromDate = fromDateFilter.getValue() != null ? fromDateFilter.getValue().atStartOfDay() : null;
+        LocalDateTime toDate = toDateFilter.getValue() != null ? toDateFilter.getValue().plusDays(1).atStartOfDay() : null;
+
+        Boolean hasCar = hasCarFilter.isSelected() ? true : null;
+        Boolean hasToothpick = hasToothpickFilter.isSelected() ? true : null;
+
         Mood mood = moodFilter.getValue();
         WeaponType weapon = weaponFilter.getValue();
 
         List<HumanBeing> result = allData.stream()
-                .filter(h -> text.isEmpty() || matchesAnyColumn(h, text))
-                .filter(h -> soundtrackPrefix.isEmpty()
-                        || (h.getSoundtrackName() != null
-                        && h.getSoundtrackName().toLowerCase().startsWith(soundtrackPrefix)))
+                .filter(h -> nameText.isEmpty() || h.getName().toLowerCase().contains(nameText))
+                .filter(h -> ownerText.isEmpty() || h.getOwner().toLowerCase().contains(ownerText))
+                .filter(h -> minX == null || h.getCoordinates().getX() >= minX)
+                .filter(h -> maxX == null || h.getCoordinates().getX() <= maxX)
+                .filter(h -> minY == null || h.getCoordinates().getY() >= minY)
+                .filter(h -> maxY == null || h.getCoordinates().getY() <= maxY)
+                .filter(h -> fromDate == null || h.getCreationDate().isAfter(fromDate) || h.getCreationDate().isEqual(fromDate))
+                .filter(h -> toDate == null || h.getCreationDate().isBefore(toDate))
+                .filter(h -> hasCar == null || h.getCar().getCool() == hasCar)
+                .filter(h -> hasToothpick == null || h.getHasToothpick() == hasToothpick)
                 .filter(h -> mood == null || h.getMood() == mood)
                 .filter(h -> weapon == null || h.getWeaponType() == weapon)
                 .sorted(getComparator())
@@ -339,22 +476,13 @@ public class MainController {
         displayedData.setAll(result);
     }
 
-    private boolean matchesAnyColumn(HumanBeing h, String text) {
-        return Stream.of(
-                h.getName(),
-                h.getOwner(),
-                h.getSoundtrackName(),
-                String.valueOf(h.getId()),
-                LocalizationManager.formatWeaponType(h.getWeaponType()),
-                LocalizationManager.formatMood(h.getMood()),
-                LocalizationManager.formatBoolean(h.getRealHero()),
-                LocalizationManager.formatBoolean(h.getHasToothpick()),
-                LocalizationManager.formatBoolean(h.getCar().getCool()),
-                LocalizationManager.formatNumber(h.getCoordinates().getX()),
-                LocalizationManager.formatNumber(h.getCoordinates().getY()),
-                LocalizationManager.formatNumber(h.getImpactSpeed()),
-                LocalizationManager.formatDateTime(h.getCreationDate())
-        ).anyMatch(value -> value != null && value.toLowerCase().contains(text));
+    private Double parseDoubleSafe(String text) {
+        if (text == null || text.trim().isEmpty()) return null;
+        try {
+            return Double.parseDouble(text.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private Comparator<HumanBeing> getComparator() {
@@ -610,8 +738,17 @@ public class MainController {
         tablePlaceholder.setText(LocalizationManager.getString("table.empty"));
         stage.setTitle(LocalizationManager.getString("app.title"));
 
-        filterField.setPromptText(LocalizationManager.getString("filter"));
-        soundtrackFilterField.setPromptText(LocalizationManager.getString("filter_soundtrack"));
+        nameFilterField.setPromptText(LocalizationManager.getString("filter.name"));
+        ownerFilterField.setPromptText(LocalizationManager.getString("filter.owner"));
+        minXFilterField.setPromptText(LocalizationManager.getString("filter.min_x"));
+        maxXFilterField.setPromptText(LocalizationManager.getString("filter.max_x"));
+        minYFilterField.setPromptText(LocalizationManager.getString("filter.min_y"));
+        maxYFilterField.setPromptText(LocalizationManager.getString("filter.max_y"));
+        fromDateFilter.setPromptText(LocalizationManager.getString("filter.from_date"));
+        toDateFilter.setPromptText(LocalizationManager.getString("filter.to_date"));
+        hasCarFilter.setText(LocalizationManager.getString("filter.has_car"));
+        hasToothpickFilter.setText(LocalizationManager.getString("filter.has_toothpick"));
+
         moodFilter.setConverter(createMoodConverter());
         moodFilter.setPromptText(LocalizationManager.getString("mood.all"));
 

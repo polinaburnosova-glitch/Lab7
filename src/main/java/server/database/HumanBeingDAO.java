@@ -82,6 +82,19 @@ public class HumanBeingDAO {
         return collection;
     }
 
+    public static int clearByOwner(String ownerUsername) {
+        String sql = "DELETE FROM human_beings WHERE owner_id = (SELECT id FROM users WHERE username = ?)";
+
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, ownerUsername);
+            return stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
     /**
      * Обновляет существующий объект HumanBeing в БД.
      *
@@ -91,7 +104,7 @@ public class HumanBeingDAO {
      */
     public static boolean update(HumanBeing human, String ownerUsername) {
         String sql = "UPDATE human_beings SET " +
-                "name = ?, coordinate_x = ?, coordinate_y = ?, creation_date = ?, " +
+                "name = ?, coordinate_x = ?, coordinate_y = ?, " +
                 "real_hero = ?, has_toothpick = ?, impact_speed = ?, soundtrack_name = ?, " +
                 "weapon_type = ?, mood = ?, car_cool = ? " +
                 "WHERE id = ? AND owner_id = (SELECT id FROM users WHERE username = ?)";
@@ -102,19 +115,17 @@ public class HumanBeingDAO {
             stmt.setString(1, human.getName());
             stmt.setDouble(2, human.getCoordinates().getX());
             stmt.setFloat(3, human.getCoordinates().getY());
-            stmt.setTimestamp(4, Timestamp.valueOf(human.getCreationDate()));
-            stmt.setBoolean(5, human.getRealHero());
-            stmt.setBoolean(6, human.getHasToothpick());
-            stmt.setFloat(7, human.getImpactSpeed());
-            stmt.setString(8, human.getSoundtrackName());
-            stmt.setString(9, human.getWeaponType().name());
-            stmt.setString(10, human.getMood() != null ? human.getMood().name() : null);
-            stmt.setBoolean(11, human.getCar().getCool());
-            stmt.setLong(12, human.getId());
-            stmt.setString(13, ownerUsername);
+            stmt.setBoolean(4, human.getRealHero());
+            stmt.setBoolean(5, human.getHasToothpick());
+            stmt.setFloat(6, human.getImpactSpeed());
+            stmt.setString(7, human.getSoundtrackName());
+            stmt.setString(8, human.getWeaponType().name());
+            stmt.setString(9, human.getMood() != null ? human.getMood().name() : null);
+            stmt.setBoolean(10, human.getCar().getCool());
+            stmt.setLong(11, human.getId());
+            stmt.setString(12, ownerUsername);
 
-            int rowsAffected = stmt.executeUpdate();
-            return rowsAffected > 0;
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
@@ -138,6 +149,20 @@ public class HumanBeingDAO {
 
             int rowsAffected = stmt.executeUpdate();
             return rowsAffected > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public static boolean existsById(long id) {
+        String sql = "SELECT 1 FROM human_beings WHERE id = ?";
+
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, id);
+            ResultSet rs = stmt.executeQuery();
+            return rs.next();
         } catch (SQLException e) {
             e.printStackTrace();
             return false;

@@ -440,29 +440,6 @@ public class CollectionManager {
         }
     }
 
-    /**
-     * Обновляет объект по ID.
-     *
-     * @param id ID объекта
-     * @param human объект с новыми данными
-     * @param ownerUsername имя владельца
-     * @return true если обновление успешно
-     */
-    public boolean update(long id, HumanBeing human, String ownerUsername) {
-        if (!existsAndOwnedBy(id, ownerUsername)) {
-            return false;
-        }
-        human.setId(id);
-        lock.writeLock().lock();
-        try {
-            collection.removeIf(h -> h.getId() == id);
-            collection.add(human);
-            return true;
-        } finally {
-            lock.writeLock().unlock();
-        }
-    }
-
     public HumanBeing findById(long id) {
         lock.readLock().lock();
         try {
@@ -472,6 +449,19 @@ public class CollectionManager {
                     .orElse(null);
         } finally {
             lock.readLock().unlock();
+        }
+    }
+
+    /**
+     * Обновляет объект в памяти без записи в БД (для синхронизации после БД)
+     */
+    public void updateInMemory(HumanBeing human) {
+        lock.writeLock().lock();
+        try {
+            collection.removeIf(h -> h.getId().equals(human.getId()));
+            collection.add(human);
+        } finally {
+            lock.writeLock().unlock();
         }
     }
 }

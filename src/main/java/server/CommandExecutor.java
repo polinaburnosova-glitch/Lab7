@@ -4,6 +4,8 @@ import common.model.HumanBeing;
 import common.model.Mood;
 import common.model.User;
 import common.network.*;
+import common.model.Coordinates;
+import server.database.HumanBeingDAO;
 import server.database.UserDAO;
 import server.manager.CollectionManager;
 import java.util.Collections;
@@ -145,7 +147,7 @@ public class CommandExecutor {
                     if (updateHuman == null) {
                         return validationError("не указан объект для обновления");
                     }
-                    boolean updated = collectionManager.update(updateId, updateHuman, user.getUsername());
+                    boolean updated = collectionManager.update(updateHuman,user.getUsername());
                     if (updated) {
                         return ok("Элемент с ID " + updateId + " успешно обновлён");
                     } else {
@@ -209,13 +211,36 @@ public class CommandExecutor {
                     double chance = (double) attackerPower / (attackerPower + defenderPower);
                     boolean attackerWins = Math.random() < chance;
 
+                    Coordinates attackerCoords = new Coordinates(
+                            attacker.getCoordinates().getX(),
+                            attacker.getCoordinates().getY()
+                    );
+                    Coordinates defenderCoords = new Coordinates(
+                            defender.getCoordinates().getX(),
+                            defender.getCoordinates().getY()
+                    );
+
                     if (attackerWins) {
                         attacker.setImpactSpeed(attackerPower + 10);
                         defender.setImpactSpeed(Math.max(1, defenderPower / 2));
+
+                        attacker.setCoordinates(defenderCoords);
+                        defender.setCoordinates(attackerCoords);
                     } else {
                         defender.setImpactSpeed(defenderPower + 10);
                         attacker.setImpactSpeed(Math.max(1, attackerPower / 2));
+
+                        defender.setCoordinates(attackerCoords);
+                        attacker.setCoordinates(defenderCoords);
                     }
+
+                    boolean attackerUpdated = HumanBeingDAO.update(attacker, attacker.getOwner());
+                    boolean defenderUpdated = HumanBeingDAO.update(defender, defender.getOwner());
+
+                    if (!attackerUpdated || !defenderUpdated) {
+                        return serverError("Ошибка сохранения результатов битвы");
+                    }
+
                     collectionManager.update(attacker, attacker.getOwner());
                     collectionManager.update(defender, defender.getOwner());
 
