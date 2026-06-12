@@ -15,7 +15,7 @@ public class Launcher extends Application {
         String host = EnvLoader.get("CLIENT_HOST", "localhost");
         int port = EnvLoader.getInt("CLIENT_PORT", 5556);
 
-        String defaultLanguage = EnvLoader.get("DEFAULT_LANGUAGE", "Русский");
+        String defaultLanguage = EnvLoader.get("DEFAULT_LANGUAGE", LocalizationManager.LANG_RU);
         LocalizationManager.setLocale(defaultLanguage);
 
         client = new SimpleClient(host, port);

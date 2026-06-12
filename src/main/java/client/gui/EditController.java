@@ -15,8 +15,10 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.util.StringConverter;
 
 import java.io.IOException;
+import java.text.ParseException;
 
 public class EditController {
 
@@ -40,22 +42,12 @@ public class EditController {
     private ComboBox<Mood> moodCombo;
     private ComboBox<Boolean> carCoolCombo;
 
-    // Конструктор для обычного ADD (без флагов)
-    public EditController(SimpleClient client, User currentUser, HumanBeing human) {
-        this(client, currentUser, human, false, false);
-    }
-
-    // Конструктор для ADD_IF_MIN
-    public EditController(SimpleClient client, User currentUser, HumanBeing human, boolean isAddIfMin) {
-        this(client, currentUser, human, isAddIfMin, false);
-    }
-
-    // Основной конструктор
-    public EditController(SimpleClient client, User currentUser, HumanBeing human, boolean isAddIfMin, boolean isAddIfMax) {
+    public EditController(SimpleClient client, User currentUser, HumanBeing human,
+                          boolean isAddIfMin, boolean isAddIfMax) {
         this.client = client;
         this.currentUser = currentUser;
         this.editingHuman = human;
-        this.isEditMode = (human != null && human.getId() != null);
+        this.isEditMode = human != null && human.getId() != null;
         this.isAddIfMin = isAddIfMin;
         this.isAddIfMax = isAddIfMax;
     }
@@ -63,9 +55,7 @@ public class EditController {
     public void showAndWait() {
         stage = new Stage();
         stage.initModality(Modality.APPLICATION_MODAL);
-        stage.setTitle(isEditMode ?
-                LocalizationManager.getString("edit.title") :
-                LocalizationManager.getString("add.title"));
+        stage.setTitle(resolveTitle());
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -76,32 +66,26 @@ public class EditController {
 
         grid.add(new Label(LocalizationManager.getString("col.name") + ":"), 0, row);
         nameField = new TextField();
-        nameField.setPromptText("Name");
         grid.add(nameField, 1, row++);
 
-        grid.add(new Label("X:"), 0, row);
+        grid.add(new Label(LocalizationManager.getString("col.x") + ":"), 0, row);
         xField = new TextField();
-        xField.setPromptText("X");
         grid.add(xField, 1, row++);
 
-        grid.add(new Label("Y:"), 0, row);
+        grid.add(new Label(LocalizationManager.getString("col.y") + ":"), 0, row);
         yField = new TextField();
-        yField.setPromptText("Y");
         grid.add(yField, 1, row++);
 
         grid.add(new Label(LocalizationManager.getString("col.real_hero") + ":"), 0, row);
-        realHeroCombo = new ComboBox<>();
-        realHeroCombo.getItems().addAll(true, false);
+        realHeroCombo = createBooleanCombo();
         grid.add(realHeroCombo, 1, row++);
 
         grid.add(new Label(LocalizationManager.getString("col.has_toothpick") + ":"), 0, row);
-        hasToothpickCombo = new ComboBox<>();
-        hasToothpickCombo.getItems().addAll(true, false);
+        hasToothpickCombo = createBooleanCombo();
         grid.add(hasToothpickCombo, 1, row++);
 
         grid.add(new Label(LocalizationManager.getString("col.impact_speed") + ":"), 0, row);
         impactSpeedField = new TextField();
-        impactSpeedField.setPromptText("<=657");
         grid.add(impactSpeedField, 1, row++);
 
         grid.add(new Label(LocalizationManager.getString("col.soundtrack") + ":"), 0, row);
@@ -111,46 +95,109 @@ public class EditController {
         grid.add(new Label(LocalizationManager.getString("col.weapon_type") + ":"), 0, row);
         weaponCombo = new ComboBox<>();
         weaponCombo.getItems().addAll(WeaponType.values());
+        weaponCombo.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(WeaponType object) {
+                return object == null ? "" : LocalizationManager.formatWeaponType(object);
+            }
+
+            @Override
+            public WeaponType fromString(String string) {
+                return null;
+            }
+        });
         grid.add(weaponCombo, 1, row++);
 
         grid.add(new Label(LocalizationManager.getString("col.mood") + ":"), 0, row);
         moodCombo = new ComboBox<>();
-        moodCombo.getItems().addAll(Mood.values());
         moodCombo.getItems().add(null);
+        moodCombo.getItems().addAll(Mood.values());
+        moodCombo.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(Mood object) {
+                return LocalizationManager.formatMood(object);
+            }
+
+            @Override
+            public Mood fromString(String string) {
+                return null;
+            }
+        });
         grid.add(moodCombo, 1, row++);
 
         grid.add(new Label(LocalizationManager.getString("col.car_cool") + ":"), 0, row);
-        carCoolCombo = new ComboBox<>();
-        carCoolCombo.getItems().addAll(true, false);
+        carCoolCombo = createBooleanCombo();
         grid.add(carCoolCombo, 1, row++);
 
-        if (isEditMode && editingHuman != null) {
+        if (isEditMode) {
             fillFields();
+        } else {
+            applyDefaults();
         }
 
         Button saveBtn = new Button(LocalizationManager.getString("save"));
+        saveBtn.setDefaultButton(true);
         saveBtn.setOnAction(e -> save());
 
         Button cancelBtn = new Button(LocalizationManager.getString("cancel"));
+        cancelBtn.setCancelButton(true);
         cancelBtn.setOnAction(e -> stage.close());
 
         HBox buttonBox = new HBox(10, saveBtn, cancelBtn);
-
         VBox root = new VBox(20, grid, buttonBox);
         root.setPadding(new Insets(10));
 
-        Scene scene = new Scene(root, 400, 500);
+        Scene scene = new Scene(root, 440, 540);
         stage.setScene(scene);
         stage.showAndWait();
     }
 
+    private ComboBox<Boolean> createBooleanCombo() {
+        ComboBox<Boolean> combo = new ComboBox<>();
+        combo.getItems().addAll(true, false);
+        combo.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(Boolean object) {
+                return LocalizationManager.formatBoolean(object);
+            }
+
+            @Override
+            public Boolean fromString(String string) {
+                return null;
+            }
+        });
+        return combo;
+    }
+
+    private void applyDefaults() {
+        realHeroCombo.setValue(true);
+        hasToothpickCombo.setValue(false);
+        weaponCombo.setValue(WeaponType.KNIFE);
+        moodCombo.setValue(Mood.APATHY);
+        carCoolCombo.setValue(false);
+        impactSpeedField.setText(LocalizationManager.formatNumber(1));
+    }
+
+    private String resolveTitle() {
+        if (isEditMode) {
+            return LocalizationManager.getString("edit.title");
+        }
+        if (isAddIfMin) {
+            return LocalizationManager.getString("add_if_min.title");
+        }
+        if (isAddIfMax) {
+            return LocalizationManager.getString("add_if_max.title");
+        }
+        return LocalizationManager.getString("add.title");
+    }
+
     private void fillFields() {
         nameField.setText(editingHuman.getName());
-        xField.setText(String.valueOf(editingHuman.getCoordinates().getX()));
-        yField.setText(String.valueOf(editingHuman.getCoordinates().getY()));
+        xField.setText(LocalizationManager.formatNumber(editingHuman.getCoordinates().getX()));
+        yField.setText(LocalizationManager.formatNumber(editingHuman.getCoordinates().getY()));
         realHeroCombo.setValue(editingHuman.getRealHero());
         hasToothpickCombo.setValue(editingHuman.getHasToothpick());
-        impactSpeedField.setText(String.valueOf(editingHuman.getImpactSpeed()));
+        impactSpeedField.setText(LocalizationManager.formatNumber(editingHuman.getImpactSpeed()));
         soundtrackField.setText(editingHuman.getSoundtrackName());
         weaponCombo.setValue(editingHuman.getWeaponType());
         moodCombo.setValue(editingHuman.getMood());
@@ -161,37 +208,41 @@ public class EditController {
         try {
             String name = nameField.getText().trim();
             if (name.isEmpty()) {
-                showAlert("Name cannot be empty");
+                showAlert(LocalizationManager.getString("error.validation.name"));
                 return;
             }
 
-            double x = Double.parseDouble(xField.getText().trim());
-            float y = Float.parseFloat(yField.getText().trim());
-            float impactSpeed = Float.parseFloat(impactSpeedField.getText().trim());
+            double x = LocalizationManager.parseNumber(xField.getText());
+            float y = (float) LocalizationManager.parseNumber(yField.getText());
+            float impactSpeed = (float) LocalizationManager.parseNumber(impactSpeedField.getText());
 
             if (impactSpeed > 657) {
-                showAlert("ImpactSpeed must be <= 657");
+                showAlert(LocalizationManager.getString("error.validation.impact_speed"));
                 return;
             }
 
             String soundtrack = soundtrackField.getText().trim();
             if (soundtrack.isEmpty()) {
-                showAlert("Soundtrack cannot be empty");
+                showAlert(LocalizationManager.getString("error.validation.soundtrack"));
                 return;
             }
 
-            Coordinates coordinates = new Coordinates(x, y);
-            Car car = new Car(carCoolCombo.getValue());
+            if (realHeroCombo.getValue() == null || hasToothpickCombo.getValue() == null
+                    || weaponCombo.getValue() == null || carCoolCombo.getValue() == null) {
+                showAlert(LocalizationManager.getString("error.validation.number"));
+                return;
+            }
 
             HumanBeing human = new HumanBeing(
-                    name, coordinates,
+                    name,
+                    new Coordinates(x, y),
                     realHeroCombo.getValue(),
                     hasToothpickCombo.getValue(),
                     impactSpeed,
                     soundtrack,
                     weaponCombo.getValue(),
                     moodCombo.getValue(),
-                    car,
+                    new Car(carCoolCombo.getValue()),
                     currentUser.getUsername()
             );
 
@@ -225,10 +276,10 @@ public class EditController {
                 showAlert(response.getMessage());
             }
 
-        } catch (NumberFormatException e) {
-            showAlert("Invalid number format");
+        } catch (ParseException e) {
+            showAlert(LocalizationManager.getString("error.validation.number"));
         } catch (IOException | ClassNotFoundException e) {
-            showAlert("Network error: " + e.getMessage());
+            showAlert(LocalizationManager.getString("error.validation.network") + ": " + e.getMessage());
         }
     }
 

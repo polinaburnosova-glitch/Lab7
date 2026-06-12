@@ -46,20 +46,25 @@ public class AnimationHelper {
     /**
      * Эффект удара при битве
      */
-    public static void animateHit(Canvas canvas, double x, double y) {
+    public static void animateHit(Canvas canvas, double x, double y, Runnable onFinished) {
         Timeline flash = new Timeline(
                 new KeyFrame(Duration.ZERO, e -> {
                     javafx.scene.canvas.GraphicsContext gc = canvas.getGraphicsContext2D();
                     gc.setFill(Color.rgb(255, 255, 255, 0.7));
-                    gc.fillRect(x, y, 40, 40);
+                    gc.fillRect(x, y, 50, 50);
                 }),
                 new KeyFrame(Duration.millis(100), e -> {
-                    javafx.scene.canvas.GraphicsContext gc = canvas.getGraphicsContext2D();
-                    gc.setFill(Color.rgb(255, 255, 255, 0));
-                    gc.fillRect(x, y, 50, 50);
+                    if (onFinished != null) {
+                        onFinished.run();
+                    }
                 })
         );
         flash.setCycleCount(3);
+        flash.setOnFinished(e -> {
+            if (onFinished != null) {
+                onFinished.run();
+            }
+        });
         flash.play();
 
         TranslateTransition shake = new TranslateTransition(Duration.millis(50), canvas);
@@ -67,6 +72,7 @@ public class AnimationHelper {
         shake.setToX(5);
         shake.setAutoReverse(true);
         shake.setCycleCount(6);
+        shake.setOnFinished(e -> canvas.setTranslateX(0));
         shake.play();
     }
 
@@ -87,7 +93,12 @@ public class AnimationHelper {
         FadeTransition fade = new FadeTransition(Duration.millis(300), node);
         fade.setFromValue(1);
         fade.setToValue(0);
-        fade.setOnFinished(e -> onFinished.run());
+        fade.setOnFinished(e -> {
+            node.setOpacity(1);
+            if (onFinished != null) {
+                onFinished.run();
+            }
+        });
         fade.play();
     }
 
