@@ -1,67 +1,52 @@
 plugins {
-    java
-    application
-    id("org.openjfx.javafxplugin") version "0.1.0"
+    id("java")
+    id("application")
+    id("org.openjfx.javafxplugin") version "0.0.13"
 }
 
-group = "com.Lab7.1"
+group = "org.example"
 version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
 }
 
+javafx {
+    version = "21"
+    modules = listOf("javafx.controls", "javafx.fxml", "javafx.graphics", "javafx.base")
+}
+
 dependencies {
-    implementation("org.postgresql:postgresql:42.7.3")
+    implementation("org.postgresql:postgresql:42.7.1")
+
     implementation("io.github.cdimascio:dotenv-java:3.0.0")
 }
 
-javafx {
-    version = "21"
-    modules = listOf("javafx.controls", "javafx.fxml")
-}
-
-application {
-    mainClass.set("client.gui.Launcher")
-}
-
-tasks.register<Copy>("copyJavafxLibs") {
-    group = "build setup"
-    description = "Copy JavaFX runtime jars into lib/ for IntelliJ run configuration"
-    from({
-        configurations.runtimeClasspath.get().filter {
-            it.name.matches(Regex("javafx-(base|controls|fxml|graphics)-\\d+.*\\.jar"))
-        }
-    })
-    into(layout.projectDirectory.dir("lib"))
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
 }
 
-tasks.processResources {
-    filteringCharset = "UTF-8"
+application {
+    mainClass.set("client.gui.Launcher")
 }
 
-tasks.withType<Javadoc> {
-    options.encoding = "UTF-8"
-    (options as? StandardJavadocDocletOptions)?.let {
-        it.charSet = "UTF-8"
-        it.docEncoding = "UTF-8"
-        it.addStringOption("Xdoclint:none", "-quiet")
-    }
-    isFailOnError = false
+task<JavaExec>("runServer") {
+    group = "application"
+    description = "Run the server"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("server.ServerMain")
+    systemProperty("file.encoding", "UTF-8")
 }
 
-tasks.jar {
-    manifest {
-        attributes["Main-Class"] = "client.gui.Launcher"
-    }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from(sourceSets.main.get().output)
-    dependsOn(configurations.runtimeClasspath)
-    from({
-        configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
-    })
+task<JavaExec>("runClient") {
+    group = "application"
+    description = "Run the client"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("client.gui.Launcher")
+    systemProperty("file.encoding", "UTF-8")
 }

@@ -71,30 +71,29 @@ public class ThreadPoolServer {
     private void handleClient(Socket clientSocket) {
         try (ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
              ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream())) {
-            while (true) {
-                Request request = (Request) ois.readObject();
-                System.out.println("Команда: " + request.getCommandType());
-                Thread processingThread = new Thread(() -> {
+
+            while (running) {
+                try {
+                    Request request = (Request) ois.readObject();
+                    System.out.println("Команда: " + request.getCommandType());
+
                     Response response = commandExecutor.execute(request);
-                    sendPool.submit(() -> {
-                        try {
-                            oos.writeObject(response);
-                            oos.flush();
-                            System.out.println("Ответ отправлен");
-                        } catch (IOException e) {
-                            System.err.println("Ошибка при отправке: " + e.getMessage());
-                        }
-                    });
-                });
-                processingThread.start();
-                processingThread.join();
-                if (request.getCommandType() == CommandType.EXIT) {
+                    oos.writeObject(response);
+                    oos.flush();
+                    System.out.println("Ответ отправлен");
+
+                    if (request.getCommandType() == CommandType.EXIT) {
+                        break;
+                    }
+                } catch (EOFException e) {
+                    break; 
+                } catch (ClassNotFoundException | IOException e) {
+                    System.err.println("Ошибка: " + e.getMessage());
                     break;
                 }
             }
-        } catch (EOFException e) {
-        } catch (IOException | ClassNotFoundException | InterruptedException e) {
-            System.err.println("Ошибка: " + e.getMessage());
+        } catch (IOException e) {
+            System.err.println("Ошибка при подключении: " + e.getMessage());
         }
     }
 

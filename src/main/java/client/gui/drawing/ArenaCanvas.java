@@ -76,7 +76,7 @@ public class ArenaCanvas extends Canvas {
         gc.setStroke(Color.LIGHTGRAY);
         gc.setLineWidth(0.5);
 
-        double step = 60;
+        double step = 50;
         for (double x = 0; x < getWidth(); x += step) {
             gc.strokeLine(x, 0, x, getHeight());
         }
@@ -86,10 +86,9 @@ public class ArenaCanvas extends Canvas {
 
         gc.setFont(new Font("Arial", 10));
         gc.setFill(Color.GRAY);
-        gc.fillText("X: " + LocalizationManager.formatNumber(minX) + " — "
-                + LocalizationManager.formatNumber(maxX), 10, getHeight() - 20);
-        gc.fillText("Y: " + LocalizationManager.formatNumber(minY) + " — "
-                + LocalizationManager.formatNumber(maxY), 10, getHeight() - 5);
+        gc.fillText("0", 5, getHeight() - 5);
+        gc.fillText("X", getWidth() - 15, getHeight() - 5);
+        gc.fillText("Y", 5, 15);
     }
 
     private Color colorForOwner(String owner) {
@@ -102,13 +101,8 @@ public class ArenaCanvas extends Canvas {
     private void drawHuman(GraphicsContext gc, HumanBeing human, double x, double y) {
         lastX.put(human.getId(), x);
         lastY.put(human.getId(), y);
-
-        long id = human.getId();
-        double offsetX = (id % 5) * 3;
-        double offsetY = ((id / 5) % 5) * 3;
-
         gc.setFill(colorForOwner(human.getOwner()));
-        gc.fillRoundRect(x + offsetX, y + offsetY, OBJECT_SIZE, OBJECT_SIZE, 10, 10);
+        gc.fillRoundRect(x, y, OBJECT_SIZE, OBJECT_SIZE, 10, 10);
 
         boolean own = human.getOwner().equals(currentUser.getUsername());
         gc.setStroke(own ? Color.GOLD : Color.BLACK);
@@ -119,8 +113,8 @@ public class ArenaCanvas extends Canvas {
         gc.setFill(Color.BLACK);
         gc.fillText(human.getName(), x + 4, y + 14);
         gc.fillText("ID:" + human.getId(), x + 4, y + 28);
-        gc.fillText("(" + LocalizationManager.formatNumber(human.getCoordinates().getX()) + ","
-                + LocalizationManager.formatNumber(human.getCoordinates().getY()) + ")", x + 4, y + 42);
+        gc.fillText("(" + LocalizationManager.formatNumber(human.getCoordinates().getX()) + "," +
+                LocalizationManager.formatNumber(human.getCoordinates().getY()) + ")", x + 4, y + 42);
     }
 
     public Long getObjectAt(double mouseX, double mouseY) {
