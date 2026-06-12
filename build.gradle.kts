@@ -18,7 +18,6 @@ javafx {
 
 dependencies {
     implementation("org.postgresql:postgresql:42.7.1")
-
     implementation("io.github.cdimascio:dotenv-java:3.0.0")
 }
 
@@ -35,18 +34,14 @@ application {
     mainClass.set("client.gui.Launcher")
 }
 
-task<JavaExec>("runServer") {
-    group = "application"
-    description = "Run the server"
-    classpath = sourceSets["main"].runtimeClasspath
+tasks.register<JavaExec>("runServer") {
     mainClass.set("server.ServerMain")
-    systemProperty("file.encoding", "UTF-8")
+    classpath = sourceSets.main.get().runtimeClasspath
+    group = "application"
 }
 
-task<JavaExec>("runClient") {
-    group = "application"
-    description = "Run the client"
-    classpath = sourceSets["main"].runtimeClasspath
+tasks.register<JavaExec>("runClient") {
     mainClass.set("client.gui.Launcher")
-    systemProperty("file.encoding", "UTF-8")
+    classpath = sourceSets.main.get().runtimeClasspath
+    group = "application"
 }
