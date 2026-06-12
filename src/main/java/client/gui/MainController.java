@@ -8,9 +8,11 @@ import client.script.ScriptExecutor;
 import common.model.HumanBeing;
 import common.model.Mood;
 import common.model.User;
+import common.model.WeaponType;
 import common.network.CommandType;
 import common.network.Request;
 import common.network.Response;
+import javafx.util.StringConverter;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -21,6 +23,8 @@ import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -41,6 +45,7 @@ public class MainController {
     private final User currentUser;
     private Stage stage;
     private Timer filterTimer;
+    private ComboBox<WeaponType> weaponFilter;
 
     private final ObservableList<HumanBeing> allData = FXCollections.observableArrayList();
     private final ObservableList<HumanBeing> displayedData = FXCollections.observableArrayList();
@@ -172,6 +177,23 @@ public class MainController {
             refreshLocalizedTexts();
         });
 
+        ComboBox<WeaponType> weaponFilter = new ComboBox<>();
+        weaponFilter.getItems().add(null);
+        weaponFilter.getItems().addAll(WeaponType.values());
+        weaponFilter.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(WeaponType object) {
+                return object == null ? "All weapons" : LocalizationManager.formatWeaponType(object);
+            }
+            @Override
+            public WeaponType fromString(String string) {
+                return null;
+            }
+        });
+        weaponFilter.setPromptText(LocalizationManager.getString("weapon.filter"));
+        weaponFilter.setValue(null);
+        weaponFilter.setOnAction(e -> applyFiltersAndSort());
+
 
         welcomeLabel = new Label(buildWelcomeText());
         tableLabel = new Label(LocalizationManager.getString("label.table"));
@@ -183,7 +205,7 @@ public class MainController {
         HBox.setHgrow(topPanel.getChildren().get(1), Priority.ALWAYS);
 
 
-        HBox filterPanel = new HBox(10, filterField, soundtrackFilterField, sortLabel, sortCombo, moodFilter);
+        HBox filterPanel = new HBox(10, filterField, soundtrackFilterField, sortLabel, sortCombo, moodFilter, weaponFilter);
 
 
         HBox buttonPanel = new HBox(10, addBtn, editBtn, deleteBtn, refreshBtn, attackBtn,
@@ -222,8 +244,10 @@ public class MainController {
         startAutoRefresh();
     }
 
-    private Button createButton(String key, javafx.event.EventHandler<javafx.event.ActionEvent> handler) {
+    private Button createButton(String key, EventHandler<ActionEvent> handler) {
         Button button = new Button(LocalizationManager.getString(key));
+        button.setWrapText(true);
+        button.setMaxWidth(Double.MAX_VALUE);
         button.setOnAction(handler);
         return button;
     }
@@ -299,6 +323,7 @@ public class MainController {
         String soundtrackPrefix = soundtrackFilterField.getText() == null
                 ? "" : soundtrackFilterField.getText().trim().toLowerCase();
         Mood mood = moodFilter.getValue();
+        WeaponType weapon = weaponFilter.getValue();
 
         List<HumanBeing> result = allData.stream()
                 .filter(h -> text.isEmpty() || matchesAnyColumn(h, text))
@@ -306,6 +331,7 @@ public class MainController {
                         || (h.getSoundtrackName() != null
                         && h.getSoundtrackName().toLowerCase().startsWith(soundtrackPrefix)))
                 .filter(h -> mood == null || h.getMood() == mood)
+                .filter(h -> weapon == null || h.getWeaponType() == weapon)
                 .sorted(getComparator())
                 .collect(Collectors.toList());
 
@@ -658,10 +684,13 @@ public class MainController {
 
                 Platform.runLater(() -> {
                     showAlert(response.getMessage());
+
                     if (response.isSuccess()) {
                         loadData();
+                        arenaCanvas.redraw();
                     }
                 });
+
             } catch (Exception ex) {
                 Platform.runLater(() -> showAlert(
                         LocalizationManager.getString("error.connection") + ": " + ex.getMessage()));

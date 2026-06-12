@@ -103,8 +103,12 @@ public class ArenaCanvas extends Canvas {
         lastX.put(human.getId(), x);
         lastY.put(human.getId(), y);
 
+        long id = human.getId();
+        double offsetX = (id % 5) * 3;
+        double offsetY = ((id / 5) % 5) * 3;
+
         gc.setFill(colorForOwner(human.getOwner()));
-        gc.fillRoundRect(x, y, OBJECT_SIZE, OBJECT_SIZE, 10, 10);
+        gc.fillRoundRect(x + offsetX, y + offsetY, OBJECT_SIZE, OBJECT_SIZE, 10, 10);
 
         boolean own = human.getOwner().equals(currentUser.getUsername());
         gc.setStroke(own ? Color.GOLD : Color.BLACK);
