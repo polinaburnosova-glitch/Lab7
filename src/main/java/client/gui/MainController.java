@@ -9,6 +9,7 @@ import common.model.HumanBeing;
 import common.model.Mood;
 import common.model.User;
 import common.model.WeaponType;
+import common.model.WeaponType;
 import common.network.CommandType;
 import common.network.Request;
 import common.network.Response;
@@ -45,7 +46,6 @@ public class MainController {
     private final User currentUser;
     private Stage stage;
     private Timer filterTimer;
-    private ComboBox<WeaponType> weaponFilter;
 
     private final ObservableList<HumanBeing> allData = FXCollections.observableArrayList();
     private final ObservableList<HumanBeing> displayedData = FXCollections.observableArrayList();
@@ -58,6 +58,7 @@ public class MainController {
     private ComboBox<String> sortCombo;
     private ComboBox<Mood> moodFilter;
     private ComboBox<String> langCombo;
+    private ComboBox<WeaponType> weaponFilter;
     private Label welcomeLabel;
     private Label tableLabel;
     private Label arenaLabel;
@@ -137,6 +138,23 @@ public class MainController {
         moodFilter.setValue(null);
         moodFilter.setOnAction(e -> applyFiltersAndSort());
 
+        weaponFilter = new ComboBox<>();
+        weaponFilter.getItems().add(null);
+        weaponFilter.getItems().addAll(WeaponType.values());
+        weaponFilter.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(WeaponType object) {
+                return object == null ? LocalizationManager.getString("weapon.all") : LocalizationManager.formatWeaponType(object);
+            }
+            @Override
+            public WeaponType fromString(String string) {
+                return null;
+            }
+        });
+        weaponFilter.setPromptText(LocalizationManager.getString("weapon.filter"));
+        weaponFilter.setValue(null);
+        weaponFilter.setOnAction(e -> applyFiltersAndSort());
+
 
         arenaCanvas = new ArenaCanvas(800, 600, allData, currentUser);
         arenaCanvas.setOnMouseClicked(event -> {
@@ -176,23 +194,6 @@ public class MainController {
             LocalizationManager.setLocale(langCombo.getValue());
             refreshLocalizedTexts();
         });
-
-        ComboBox<WeaponType> weaponFilter = new ComboBox<>();
-        weaponFilter.getItems().add(null);
-        weaponFilter.getItems().addAll(WeaponType.values());
-        weaponFilter.setConverter(new StringConverter<>() {
-            @Override
-            public String toString(WeaponType object) {
-                return object == null ? "All weapons" : LocalizationManager.formatWeaponType(object);
-            }
-            @Override
-            public WeaponType fromString(String string) {
-                return null;
-            }
-        });
-        weaponFilter.setPromptText(LocalizationManager.getString("weapon.filter"));
-        weaponFilter.setValue(null);
-        weaponFilter.setOnAction(e -> applyFiltersAndSort());
 
 
         welcomeLabel = new Label(buildWelcomeText());
