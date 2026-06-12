@@ -32,12 +32,15 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainController {
 
     private final SimpleClient client;
     private final User currentUser;
     private Stage stage;
+    private Timer filterTimer;
 
     private final ObservableList<HumanBeing> allData = FXCollections.observableArrayList();
     private final ObservableList<HumanBeing> displayedData = FXCollections.observableArrayList();
@@ -85,13 +88,33 @@ public class MainController {
         tablePlaceholder = new Label(LocalizationManager.getString("table.empty"));
         tableView.setPlaceholder(tablePlaceholder);
 
+
         filterField = new TextField();
         filterField.setPromptText(LocalizationManager.getString("filter"));
-        filterField.textProperty().addListener((obs, old, val) -> applyFiltersAndSort());
+        filterField.textProperty().addListener((obs, old, val) -> {
+            if (filterTimer != null) filterTimer.cancel();
+            filterTimer = new Timer();
+            filterTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    Platform.runLater(() -> applyFiltersAndSort());
+                }
+            }, 300);
+        });
 
         soundtrackFilterField = new TextField();
         soundtrackFilterField.setPromptText(LocalizationManager.getString("filter_soundtrack"));
-        soundtrackFilterField.textProperty().addListener((obs, old, val) -> applyFiltersAndSort());
+        soundtrackFilterField.textProperty().addListener((obs, old, val) -> {
+            if (filterTimer != null) filterTimer.cancel();
+            filterTimer = new Timer();
+            filterTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    Platform.runLater(() -> applyFiltersAndSort());
+                }
+            }, 300);
+        });
+
 
         sortCombo = new ComboBox<>();
         refreshSortComboItems();
@@ -99,6 +122,7 @@ public class MainController {
             sortIndex = sortCombo.getSelectionModel().getSelectedIndex();
             applyFiltersAndSort();
         });
+
 
         moodFilter = new ComboBox<>();
         moodFilter.getItems().add(null);
@@ -108,7 +132,8 @@ public class MainController {
         moodFilter.setValue(null);
         moodFilter.setOnAction(e -> applyFiltersAndSort());
 
-        arenaCanvas = new ArenaCanvas(650, 450, allData, currentUser);
+
+        arenaCanvas = new ArenaCanvas(800, 600, allData, currentUser);
         arenaCanvas.setOnMouseClicked(event -> {
             Long id = arenaCanvas.getObjectAt(event.getX(), event.getY());
             if (id != null) {
@@ -133,6 +158,7 @@ public class MainController {
         addIfMinBtn = createButton("add_if_min", e -> openEditDialog(null, true, false));
         addIfMaxBtn = createButton("add_if_max", e -> openEditDialog(null, false, true));
 
+
         langCombo = new ComboBox<>();
         langCombo.getItems().addAll(
                 LocalizationManager.LANG_RU,
@@ -146,39 +172,51 @@ public class MainController {
             refreshLocalizedTexts();
         });
 
+
         welcomeLabel = new Label(buildWelcomeText());
         tableLabel = new Label(LocalizationManager.getString("label.table"));
         arenaLabel = new Label(LocalizationManager.getString("label.arena"));
         sortLabel = new Label(LocalizationManager.getString("label.sort_by"));
 
+
         HBox topPanel = new HBox(10, welcomeLabel, new Region(), langCombo);
         HBox.setHgrow(topPanel.getChildren().get(1), Priority.ALWAYS);
 
+
         HBox filterPanel = new HBox(10, filterField, soundtrackFilterField, sortLabel, sortCombo, moodFilter);
-        ScrollPane buttonScroll = new ScrollPane(new HBox(10, addBtn, editBtn, deleteBtn, refreshBtn, attackBtn,
-                infoBtn, clearBtn, helpBtn, scriptBtn, removeFirstBtn, minByIdBtn, addIfMinBtn, addIfMaxBtn));
-        buttonScroll.setFitToHeight(true);
-        buttonScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        buttonScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+
+
+        HBox buttonPanel = new HBox(10, addBtn, editBtn, deleteBtn, refreshBtn, attackBtn,
+                infoBtn, clearBtn, helpBtn, scriptBtn, removeFirstBtn, minByIdBtn, addIfMinBtn, addIfMaxBtn);
+        buttonPanel.setPadding(new Insets(10, 0, 0, 0));
+
 
         VBox leftPanel = new VBox(8, tableLabel, filterPanel, tableView);
         VBox.setVgrow(tableView, Priority.ALWAYS);
-        VBox rightPanel = new VBox(8, arenaLabel, arenaCanvas, buttonScroll);
+
+
+        VBox rightPanel = new VBox(8, arenaLabel, arenaCanvas, buttonPanel);
+        VBox.setVgrow(arenaCanvas, Priority.ALWAYS);
+
 
         HBox mainPanel = new HBox(20, leftPanel, rightPanel);
         HBox.setHgrow(leftPanel, Priority.ALWAYS);
         HBox.setHgrow(rightPanel, Priority.ALWAYS);
 
+
         VBox root = new VBox(10, topPanel, mainPanel);
         root.setPadding(new Insets(10));
 
+
         tableView.setItems(displayedData);
+
 
         Scene scene = new Scene(root, 1320, 760);
         stage.setTitle(LocalizationManager.getString("app.title"));
         stage.setScene(scene);
         stage.setOnCloseRequest(e -> stop());
         stage.show();
+
 
         loadData();
         startAutoRefresh();
@@ -609,7 +647,7 @@ public class MainController {
         AnimationHelper.animateHit(arenaCanvas,
                 defender.getCoordinates().getX() * 50,
                 defender.getCoordinates().getY() * 50,
-                arenaCanvas::redraw);
+                null);
 
         new Thread(() -> {
             try {

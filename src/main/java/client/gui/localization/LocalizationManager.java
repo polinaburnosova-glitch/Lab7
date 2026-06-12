@@ -103,6 +103,9 @@ public final class LocalizationManager {
     }
 
     public static double parseNumber(String text) throws ParseException {
+        if (text == null || text.trim().isEmpty()) {
+            return 0;
+        }
         return NumberFormat.getNumberInstance(currentLocale).parse(text.trim()).doubleValue();
     }
 
