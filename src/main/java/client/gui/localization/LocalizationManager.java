@@ -26,6 +26,7 @@ public final class LocalizationManager {
     public static final String LANG_DE = "Deutsch";
     public static final String LANG_HU = "Magyar";
     public static final String LANG_ES = "Español";
+    public static final String LANG_EN = "English";
 
     private static ResourceBundle bundle;
     private static Locale currentLocale;
@@ -52,6 +53,10 @@ public final class LocalizationManager {
             case LANG_ES:
                 currentLocale = new Locale("es", "GT");
                 break;
+            case LANG_EN:
+                currentLocale = Locale.ENGLISH;
+                break;
+
             case LANG_RU:
             default:
                 currentLocale = Locale.forLanguageTag("ru");
@@ -126,16 +131,12 @@ public final class LocalizationManager {
     }
 
     public static String formatMood(Mood mood) {
-        if (mood == null) {
-            return getString("mood.none");
-        }
+        if (mood == null) return getString("mood.none");
         return getString("mood." + mood.name());
     }
 
     public static String formatWeaponType(WeaponType weaponType) {
-        if (weaponType == null) {
-            return "";
-        }
+        if (weaponType == null) return "";
         return getString("weapon." + weaponType.name());
     }
 }

@@ -16,5 +16,7 @@ public enum Mood {
     /** Уныние. */
     GLOOM,
     /** Апатия. */
-    APATHY;
+    APATHY,
+    CALM,
+    JOY;
 }

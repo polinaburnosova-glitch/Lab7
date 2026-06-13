@@ -12,7 +12,6 @@ import common.model.WeaponType;
 import common.network.CommandType;
 import common.network.Request;
 import common.network.Response;
-import javafx.util.StringConverter;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -23,10 +22,6 @@ import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-import javafx.geometry.Pos;
-import javafx.scene.Node;
 
 import java.io.File;
 import java.time.LocalDateTime;
@@ -38,10 +33,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.time.format.DateTimeFormatter;
 
 public class MainController {
 
@@ -76,11 +69,13 @@ public class MainController {
     private Label arenaLabel;
     private Label sortLabel;
     private Label tablePlaceholder;
-    private int sortIndex;
+    private Label languageLabel;
+    private Label filterLabel;
+    private Label crudLabel;
+    private Label actionLabel;
+    private Label specialLabel;
 
-    private VBox crudButtons;
-    private VBox actionButtons;
-    private VBox specialButtons;
+    private int sortIndex;
 
     private Button addBtn;
     private Button editBtn;
@@ -107,74 +102,25 @@ public class MainController {
         this.stage = primaryStage;
 
         tableView = createTableView();
-        tablePlaceholder = new Label(LocalizationManager.getString("table.empty"));
+        tablePlaceholder = new Label();
         tableView.setPlaceholder(tablePlaceholder);
 
         nameFilterField = new TextField();
-        nameFilterField.setPromptText(LocalizationManager.getString("filter.name"));
-        nameFilterField.textProperty().addListener((obs, old, val) -> scheduleFilter());
-
         ownerFilterField = new TextField();
-        ownerFilterField.setPromptText(LocalizationManager.getString("filter.owner"));
-        ownerFilterField.textProperty().addListener((obs, old, val) -> scheduleFilter());
-
         minXFilterField = new TextField();
-        minXFilterField.setPromptText(LocalizationManager.getString("filter.min_x"));
         maxXFilterField = new TextField();
-        maxXFilterField.setPromptText(LocalizationManager.getString("filter.max_x"));
-        minXFilterField.textProperty().addListener((obs, old, val) -> scheduleFilter());
-        maxXFilterField.textProperty().addListener((obs, old, val) -> scheduleFilter());
-
         minYFilterField = new TextField();
-        minYFilterField.setPromptText(LocalizationManager.getString("filter.min_y"));
         maxYFilterField = new TextField();
-        maxYFilterField.setPromptText(LocalizationManager.getString("filter.max_y"));
-        minYFilterField.textProperty().addListener((obs, old, val) -> scheduleFilter());
-        maxYFilterField.textProperty().addListener((obs, old, val) -> scheduleFilter());
-
         fromDateFilter = new DatePicker();
-        fromDateFilter.setPromptText(LocalizationManager.getString("filter.from_date"));
         toDateFilter = new DatePicker();
-        toDateFilter.setPromptText(LocalizationManager.getString("filter.to_date"));
-        fromDateFilter.valueProperty().addListener((obs, old, val) -> scheduleFilter());
-        toDateFilter.valueProperty().addListener((obs, old, val) -> scheduleFilter());
 
-        hasCarFilter = new CheckBox(LocalizationManager.getString("filter.has_car"));
-        hasToothpickFilter = new CheckBox(LocalizationManager.getString("filter.has_toothpick"));
-        hasCarFilter.setOnAction(e -> scheduleFilter());
-        hasToothpickFilter.setOnAction(e -> scheduleFilter());
+        hasCarFilter = new CheckBox();
+        hasToothpickFilter = new CheckBox();
 
         sortCombo = new ComboBox<>();
-        refreshSortComboItems();
-        sortCombo.setOnAction(e -> {
-            sortIndex = sortCombo.getSelectionModel().getSelectedIndex();
-            applyFiltersAndSort();
-        });
-
         moodFilter = new ComboBox<>();
-        moodFilter.getItems().add(null);
-        moodFilter.getItems().addAll(Mood.values());
-        moodFilter.setConverter(createMoodConverter());
-        moodFilter.setPromptText(LocalizationManager.getString("mood.all"));
-        moodFilter.setValue(null);
-        moodFilter.setOnAction(e -> applyFiltersAndSort());
-
         weaponFilter = new ComboBox<>();
-        weaponFilter.getItems().add(null);
-        weaponFilter.getItems().addAll(WeaponType.values());
-        weaponFilter.setConverter(new StringConverter<>() {
-            @Override
-            public String toString(WeaponType object) {
-                return object == null ? LocalizationManager.getString("weapon.all") : LocalizationManager.formatWeaponType(object);
-            }
-            @Override
-            public WeaponType fromString(String string) {
-                return null;
-            }
-        });
-        weaponFilter.setPromptText(LocalizationManager.getString("weapon.filter"));
-        weaponFilter.setValue(null);
-        weaponFilter.setOnAction(e -> applyFiltersAndSort());
+        langCombo = new ComboBox<>();
 
         arenaCanvas = new ArenaCanvas(800, 600, allData, currentUser);
         arenaCanvas.setOnMouseClicked(event -> {
@@ -188,28 +134,21 @@ public class MainController {
         });
 
         createButtons();
+        setupFiltersAndSort();
 
-        langCombo = new ComboBox<>();
-        langCombo.getItems().addAll(
-                LocalizationManager.LANG_RU,
-                LocalizationManager.LANG_DE,
-                LocalizationManager.LANG_HU,
-                LocalizationManager.LANG_ES
-        );
-        langCombo.setValue(LocalizationManager.getCurrentLanguageName());
-        langCombo.setOnAction(e -> {
-            LocalizationManager.setLocale(langCombo.getValue());
-            refreshLocalizedTexts();
-        });
-
-        welcomeLabel = new Label(buildWelcomeText());
-        tableLabel = new Label(LocalizationManager.getString("label.table"));
-        arenaLabel = new Label(LocalizationManager.getString("label.arena"));
-        sortLabel = new Label(LocalizationManager.getString("label.sort_by"));
+        welcomeLabel = new Label();
+        tableLabel = new Label();
+        arenaLabel = new Label();
+        sortLabel = new Label();
+        languageLabel = new Label();
+        filterLabel = new Label();
+        crudLabel = new Label();
+        actionLabel = new Label();
+        specialLabel = new Label();
 
         GridPane filterPanel = createFilterPanel();
-
         HBox buttonPanel = createButtonPanel();
+        HBox topPanel = createTopPanel();
 
         VBox leftPanel = new VBox(8, tableLabel, filterPanel, tableView);
         VBox.setVgrow(tableView, Priority.ALWAYS);
@@ -220,11 +159,6 @@ public class MainController {
         HBox mainPanel = new HBox(20, leftPanel, rightPanel);
         HBox.setHgrow(leftPanel, Priority.ALWAYS);
         HBox.setHgrow(rightPanel, Priority.ALWAYS);
-
-        VBox topPanel = new VBox(5);
-        HBox welcomePanel = new HBox(10, welcomeLabel, new Region(), langCombo);
-        HBox.setHgrow(welcomePanel.getChildren().get(1), Priority.ALWAYS);
-        topPanel.getChildren().addAll(welcomePanel, new Separator());
 
         VBox root = new VBox(10, topPanel, mainPanel);
         root.setPadding(new Insets(10));
@@ -237,8 +171,67 @@ public class MainController {
         stage.setOnCloseRequest(e -> stop());
         stage.show();
 
+        refreshLocalizedTexts();
         loadData();
         startAutoRefresh();
+    }
+
+    private HBox createTopPanel() {
+        languageLabel = new Label();
+        langCombo.getItems().addAll(
+                LocalizationManager.LANG_RU,
+                LocalizationManager.LANG_EN,
+                LocalizationManager.LANG_DE,
+                LocalizationManager.LANG_HU,
+                LocalizationManager.LANG_ES
+        );
+        langCombo.setValue(LocalizationManager.getCurrentLanguageName());
+        langCombo.setOnAction(e -> {
+            LocalizationManager.setLocale(langCombo.getValue());
+            refreshLocalizedTexts();
+        });
+
+        HBox welcomePanel = new HBox(10, welcomeLabel, new Region(), languageLabel, langCombo);
+        HBox.setHgrow(welcomePanel.getChildren().get(1), Priority.ALWAYS);
+
+        return welcomePanel;
+    }
+
+    private void setupFiltersAndSort() {
+        nameFilterField.textProperty().addListener((obs, old, val) -> scheduleFilter());
+        ownerFilterField.textProperty().addListener((obs, old, val) -> scheduleFilter());
+        minXFilterField.textProperty().addListener((obs, old, val) -> scheduleFilter());
+        maxXFilterField.textProperty().addListener((obs, old, val) -> scheduleFilter());
+        minYFilterField.textProperty().addListener((obs, old, val) -> scheduleFilter());
+        maxYFilterField.textProperty().addListener((obs, old, val) -> scheduleFilter());
+        fromDateFilter.valueProperty().addListener((obs, old, val) -> scheduleFilter());
+        toDateFilter.valueProperty().addListener((obs, old, val) -> scheduleFilter());
+        hasCarFilter.setOnAction(e -> scheduleFilter());
+        hasToothpickFilter.setOnAction(e -> scheduleFilter());
+
+        moodFilter.getItems().add(null);
+        moodFilter.getItems().addAll(Mood.values());
+        moodFilter.setConverter(createMoodConverter());
+        moodFilter.setOnAction(e -> applyFiltersAndSort());
+
+        weaponFilter.getItems().add(null);
+        weaponFilter.getItems().addAll(WeaponType.values());
+        weaponFilter.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(WeaponType object) {
+                return object == null ? LocalizationManager.getString("weapon.all") : LocalizationManager.formatWeaponType(object);
+            }
+            @Override
+            public WeaponType fromString(String string) {
+                return null;
+            }
+        });
+        weaponFilter.setOnAction(e -> applyFiltersAndSort());
+
+        sortCombo.setOnAction(e -> {
+            sortIndex = sortCombo.getSelectionModel().getSelectedIndex();
+            applyFiltersAndSort();
+        });
     }
 
     private void scheduleFilter() {
@@ -260,8 +253,8 @@ public class MainController {
         filterPanel.setStyle("-fx-border-color: lightgray; -fx-border-radius: 5; -fx-padding: 5;");
 
         int row = 0;
-
-        filterPanel.add(new Label(LocalizationManager.getString("filter.name") + ":"), 0, row);
+        filterPanel.add(filterLabel, 0, row);
+        filterPanel.add(new Label(LocalizationManager.getString("filter.name") + ":"), 0, ++row);
         filterPanel.add(nameFilterField, 1, row);
         filterPanel.add(new Label(LocalizationManager.getString("filter.owner") + ":"), 2, row);
         filterPanel.add(ownerFilterField, 3, row);
@@ -287,7 +280,7 @@ public class MainController {
         row++;
         filterPanel.add(hasCarFilter, 0, row);
         filterPanel.add(hasToothpickFilter, 1, row);
-        filterPanel.add(new Label(LocalizationManager.getString("label.sort_by") + ":"), 2, row);
+        filterPanel.add(sortLabel, 2, row);
         filterPanel.add(sortCombo, 3, row);
         filterPanel.add(new Label(LocalizationManager.getString("label.mood") + ":"), 4, row);
         filterPanel.add(moodFilter, 5, row);
@@ -303,74 +296,54 @@ public class MainController {
 
         VBox crudGroup = new VBox(5);
         crudGroup.setStyle("-fx-border-color: lightgray; -fx-border-radius: 5; -fx-padding: 5;");
-        Label crudLabel = new Label(LocalizationManager.getString("group.crud"));
         crudLabel.setStyle("-fx-font-weight: bold;");
         crudGroup.getChildren().add(crudLabel);
         crudGroup.getChildren().addAll(addBtn, editBtn, deleteBtn, refreshBtn);
 
         VBox actionGroup = new VBox(5);
         actionGroup.setStyle("-fx-border-color: lightgray; -fx-border-radius: 5; -fx-padding: 5;");
-        Label actionLabel = new Label(LocalizationManager.getString("group.actions"));
         actionLabel.setStyle("-fx-font-weight: bold;");
         actionGroup.getChildren().add(actionLabel);
         actionGroup.getChildren().addAll(attackBtn, infoBtn, clearBtn, helpBtn, scriptBtn);
 
         VBox specialGroup = new VBox(5);
         specialGroup.setStyle("-fx-border-color: lightgray; -fx-border-radius: 5; -fx-padding: 5;");
-        Label specialLabel = new Label(LocalizationManager.getString("group.special"));
         specialLabel.setStyle("-fx-font-weight: bold;");
         specialGroup.getChildren().add(specialLabel);
         specialGroup.getChildren().addAll(removeFirstBtn, minByIdBtn, addIfMinBtn, addIfMaxBtn);
-
-        Stream.of(crudGroup, actionGroup, specialGroup)
-                .flatMap(group -> group.getChildren().stream())
-                .filter(node -> node instanceof Button)
-                .map(node -> (Button) node)
-                .forEach(btn -> {
-                    btn.setMaxWidth(Double.MAX_VALUE);
-                    btn.setPrefWidth(120);
-                });
 
         buttonPanel.getChildren().addAll(crudGroup, actionGroup, specialGroup);
         return buttonPanel;
     }
 
     private void createButtons() {
-        addBtn = createStyledButton("add", e -> openEditDialog(null, false, false));
-        editBtn = createStyledButton("edit", e -> editSelectedFromTable());
-        deleteBtn = createStyledButton("delete", e -> deleteSelectedFromTable());
-        refreshBtn = createStyledButton("refresh", e -> loadData());
-        attackBtn = createStyledButton("attack", e -> attackFromTable());
-        infoBtn = createStyledButton("info", e -> runCommand(CommandType.INFO, null, false));
-        clearBtn = createStyledButton("clear", e -> confirmAndClear());
-        helpBtn = createStyledButton("help", e -> runCommand(CommandType.HELP, null, false));
-        scriptBtn = createStyledButton("execute_script", e -> executeScript());
-        removeFirstBtn = createStyledButton("remove_first", e -> runCommand(CommandType.REMOVE_FIRST, null, true));
-        minByIdBtn = createStyledButton("min_by_id", e -> runCommand(CommandType.MIN_BY_ID, null, false));
-        addIfMinBtn = createStyledButton("add_if_min", e -> openEditDialog(null, true, false));
-        addIfMaxBtn = createStyledButton("add_if_max", e -> openEditDialog(null, false, true));
-    }
+        addBtn = new Button();
+        editBtn = new Button();
+        deleteBtn = new Button();
+        refreshBtn = new Button();
+        attackBtn = new Button();
+        infoBtn = new Button();
+        clearBtn = new Button();
+        helpBtn = new Button();
+        scriptBtn = new Button();
+        removeFirstBtn = new Button();
+        minByIdBtn = new Button();
+        addIfMinBtn = new Button();
+        addIfMaxBtn = new Button();
 
-    private Button createStyledButton(String key, EventHandler<ActionEvent> handler) {
-        Button button = new Button(LocalizationManager.getString(key));
-        button.setWrapText(true);
-        button.setPrefWidth(120);
-        button.setMaxWidth(Double.MAX_VALUE);
-        button.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 5;");
-        button.setOnAction(handler);
-
-        button.setOnMouseEntered(e -> button.setStyle("-fx-background-color: #45a049; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 5;"));
-        button.setOnMouseExited(e -> button.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 5;"));
-
-        return button;
-    }
-
-    private Button createButton(String key, EventHandler<ActionEvent> handler) {
-        Button button = new Button(LocalizationManager.getString(key));
-        button.setWrapText(true);
-        button.setMaxWidth(Double.MAX_VALUE);
-        button.setOnAction(handler);
-        return button;
+        addBtn.setOnAction(e -> openEditDialog(null, false, false));
+        editBtn.setOnAction(e -> editSelectedFromTable());
+        deleteBtn.setOnAction(e -> deleteSelectedFromTable());
+        refreshBtn.setOnAction(e -> loadData());
+        attackBtn.setOnAction(e -> attackFromTable());
+        infoBtn.setOnAction(e -> runCommand(CommandType.INFO, null, false));
+        clearBtn.setOnAction(e -> confirmAndClear());
+        helpBtn.setOnAction(e -> runCommand(CommandType.HELP, null, false));
+        scriptBtn.setOnAction(e -> executeScript());
+        removeFirstBtn.setOnAction(e -> runCommand(CommandType.REMOVE_FIRST, null, true));
+        minByIdBtn.setOnAction(e -> runCommand(CommandType.MIN_BY_ID, null, false));
+        addIfMinBtn.setOnAction(e -> openEditDialog(null, true, false));
+        addIfMaxBtn.setOnAction(e -> openEditDialog(null, false, true));
     }
 
     private StringConverter<Mood> createMoodConverter() {
@@ -379,7 +352,6 @@ public class MainController {
             public String toString(Mood mood) {
                 return mood == null ? LocalizationManager.getString("mood.all") : LocalizationManager.formatMood(mood);
             }
-
             @Override
             public Mood fromString(String string) {
                 return null;
@@ -411,28 +383,11 @@ public class MainController {
         }
 
         table.getColumns().addAll(tableColumns);
-
-        table.setRowFactory(tv -> {
-            TableRow<HumanBeing> row = new TableRow<>();
-            row.setOnMouseClicked(event -> {
-                if (event.getClickCount() == 2 && !row.isEmpty()) {
-                    HumanBeing selected = row.getItem();
-                    if (selected.getOwner().equals(currentUser.getUsername())) {
-                        openEditDialog(selected, false, false);
-                    } else {
-                        showAlert(LocalizationManager.getString("error.auth"));
-                    }
-                }
-            });
-            return row;
-        });
-
         return table;
     }
 
-    private TableColumn<HumanBeing, String> createColumn(String key,
-                                                         java.util.function.Function<HumanBeing, String> extractor) {
-        TableColumn<HumanBeing, String> col = new TableColumn<>(LocalizationManager.getString(key));
+    private TableColumn<HumanBeing, String> createColumn(String key, java.util.function.Function<HumanBeing, String> extractor) {
+        TableColumn<HumanBeing, String> col = new TableColumn<>();
         col.setCellValueFactory(cell -> javafx.beans.binding.Bindings.createStringBinding(
                 () -> cell.getValue() == null ? "" : extractor.apply(cell.getValue())));
         col.setUserData(key);
@@ -487,14 +442,10 @@ public class MainController {
 
     private Comparator<HumanBeing> getComparator() {
         switch (sortIndex) {
-            case 1:
-                return Comparator.comparing(HumanBeing::getName, String.CASE_INSENSITIVE_ORDER);
-            case 2:
-                return Comparator.comparing(HumanBeing::getImpactSpeed);
-            case 3:
-                return Comparator.comparing(HumanBeing::getOwner, String.CASE_INSENSITIVE_ORDER);
-            default:
-                return Comparator.comparing(HumanBeing::getId, Comparator.nullsLast(Long::compareTo));
+            case 1: return Comparator.comparing(HumanBeing::getName, String.CASE_INSENSITIVE_ORDER);
+            case 2: return Comparator.comparing(HumanBeing::getImpactSpeed);
+            case 3: return Comparator.comparing(HumanBeing::getOwner, String.CASE_INSENSITIVE_ORDER);
+            default: return Comparator.comparing(HumanBeing::getId, Comparator.nullsLast(Long::compareTo));
         }
     }
 
@@ -515,8 +466,7 @@ public class MainController {
                     });
                 }
             } catch (Exception e) {
-                Platform.runLater(() -> showAlert(
-                        LocalizationManager.getString("error.connection") + ": " + e.getMessage()));
+                Platform.runLater(() -> showAlert(LocalizationManager.getString("error.connection") + ": " + e.getMessage()));
             }
         }).start();
     }
@@ -526,11 +476,6 @@ public class MainController {
         editController.showAndWait();
         if (editController.isSaved()) {
             loadData();
-            if (human == null) {
-                AnimationHelper.animateAdd(arenaCanvas);
-            } else {
-                AnimationHelper.animateUpdate(arenaCanvas);
-            }
         }
     }
 
@@ -581,17 +526,13 @@ public class MainController {
         if (human.getOwner().equals(currentUser.getUsername())) {
             ButtonType editType = new ButtonType(LocalizationManager.getString("dialog.edit"));
             ButtonType deleteType = new ButtonType(LocalizationManager.getString("dialog.delete"));
-            ButtonType closeType = new ButtonType(LocalizationManager.getString("dialog.close"),
-                    ButtonBar.ButtonData.CANCEL_CLOSE);
+            ButtonType closeType = new ButtonType(LocalizationManager.getString("dialog.close"), ButtonBar.ButtonData.CANCEL_CLOSE);
             alert.getButtonTypes().setAll(editType, deleteType, closeType);
 
             Optional<ButtonType> result = alert.showAndWait();
             if (result.isPresent()) {
-                if (result.get() == editType) {
-                    openEditDialog(human, false, false);
-                } else if (result.get() == deleteType) {
-                    deleteObject(human.getId());
-                }
+                if (result.get() == editType) openEditDialog(human, false, false);
+                else if (result.get() == deleteType) deleteObject(human.getId());
             }
         } else {
             alert.showAndWait();
@@ -601,55 +542,30 @@ public class MainController {
     private String buildObjectInfo(HumanBeing human) {
         return LocalizationManager.getString("info.id") + ": " + human.getId() + "\n"
                 + LocalizationManager.getString("info.name") + ": " + human.getName() + "\n"
-                + LocalizationManager.getString("info.coordinates") + ": ("
-                + LocalizationManager.formatNumber(human.getCoordinates().getX()) + ", "
-                + LocalizationManager.formatNumber(human.getCoordinates().getY()) + ")\n"
-                + LocalizationManager.getString("info.impact_speed") + ": "
-                + LocalizationManager.formatNumber(human.getImpactSpeed()) + "\n"
-                + LocalizationManager.getString("info.weapon") + ": "
-                + LocalizationManager.formatWeaponType(human.getWeaponType()) + "\n"
-                + LocalizationManager.getString("info.mood") + ": "
-                + LocalizationManager.formatMood(human.getMood()) + "\n"
-                + LocalizationManager.getString("info.real_hero") + ": "
-                + LocalizationManager.formatBoolean(human.getRealHero()) + "\n"
-                + LocalizationManager.getString("info.has_toothpick") + ": "
-                + LocalizationManager.formatBoolean(human.getHasToothpick()) + "\n"
+                + LocalizationManager.getString("info.coordinates") + ": (" + LocalizationManager.formatNumber(human.getCoordinates().getX()) + ", " + LocalizationManager.formatNumber(human.getCoordinates().getY()) + ")\n"
+                + LocalizationManager.getString("info.impact_speed") + ": " + LocalizationManager.formatNumber(human.getImpactSpeed()) + "\n"
+                + LocalizationManager.getString("info.weapon") + ": " + LocalizationManager.formatWeaponType(human.getWeaponType()) + "\n"
+                + LocalizationManager.getString("info.mood") + ": " + LocalizationManager.formatMood(human.getMood()) + "\n"
+                + LocalizationManager.getString("info.real_hero") + ": " + LocalizationManager.formatBoolean(human.getRealHero()) + "\n"
+                + LocalizationManager.getString("info.has_toothpick") + ": " + LocalizationManager.formatBoolean(human.getHasToothpick()) + "\n"
                 + LocalizationManager.getString("info.soundtrack") + ": " + human.getSoundtrackName() + "\n"
-                + LocalizationManager.getString("info.car_cool") + ": "
-                + LocalizationManager.formatBoolean(human.getCar().getCool()) + "\n"
-                + LocalizationManager.getString("info.creation_date") + ": "
-                + LocalizationManager.formatDateTime(human.getCreationDate()) + "\n"
+                + LocalizationManager.getString("info.car_cool") + ": " + LocalizationManager.formatBoolean(human.getCar().getCool()) + "\n"
+                + LocalizationManager.getString("info.creation_date") + ": " + LocalizationManager.formatDateTime(human.getCreationDate()) + "\n"
                 + LocalizationManager.getString("info.owner") + ": " + human.getOwner();
     }
 
     private void deleteObject(long id) {
-        HumanBeing toDelete = allData.stream()
-                .filter(h -> h.getId() == id)
-                .findFirst()
-                .orElse(null);
-
-        if (toDelete == null) {
-            return;
-        }
-
         AnimationHelper.animateFadeOut(arenaCanvas, () -> new Thread(() -> {
             try {
                 Request request = new Request(CommandType.REMOVE_BY_ID, new Object[]{id}, currentUser);
                 client.sendRequest(request);
                 Response response = client.receiveResponse();
                 Platform.runLater(() -> {
-                    if (response.isSuccess()) {
-                        loadData();
-                    } else {
-                        showAlert(response.getMessage());
-                        arenaCanvas.redraw();
-                    }
+                    if (response.isSuccess()) loadData();
+                    else showAlert(response.getMessage());
                 });
             } catch (Exception e) {
-                Platform.runLater(() -> {
-                    showAlert(LocalizationManager.getString("error.connection") + ": " + e.getMessage());
-                    arenaCanvas.redraw();
-                });
+                Platform.runLater(() -> showAlert(LocalizationManager.getString("error.connection") + ": " + e.getMessage()));
             }
         }).start());
     }
@@ -660,9 +576,7 @@ public class MainController {
         confirm.setHeaderText(null);
         confirm.setContentText(LocalizationManager.getString("confirm.clear"));
         confirm.showAndWait().ifPresent(type -> {
-            if (type == ButtonType.OK) {
-                runCommand(CommandType.CLEAR, null, true);
-            }
+            if (type == ButtonType.OK) runCommand(CommandType.CLEAR, null, true);
         });
     }
 
@@ -674,13 +588,10 @@ public class MainController {
                 Response response = client.receiveResponse();
                 Platform.runLater(() -> {
                     showAlert(response.getMessage());
-                    if (response.isSuccess() && reloadOnSuccess) {
-                        loadData();
-                    }
+                    if (response.isSuccess() && reloadOnSuccess) loadData();
                 });
             } catch (Exception ex) {
-                Platform.runLater(() -> showAlert(
-                        LocalizationManager.getString("error.connection") + ": " + ex.getMessage()));
+                Platform.runLater(() -> showAlert(LocalizationManager.getString("error.connection") + ": " + ex.getMessage()));
             }
         }).start();
     }
@@ -689,9 +600,7 @@ public class MainController {
         FileChooser chooser = new FileChooser();
         chooser.setTitle(LocalizationManager.getString("select_script"));
         File file = chooser.showOpenDialog(stage);
-        if (file == null) {
-            return;
-        }
+        if (file == null) return;
         new Thread(() -> {
             ScriptExecutor executor = new ScriptExecutor(client);
             executor.execute(file.getAbsolutePath());
@@ -715,21 +624,6 @@ public class MainController {
         return LocalizationManager.getString("welcome") + ", " + currentUser.getUsername();
     }
 
-    private void refreshSortComboItems() {
-        sortCombo.getItems().setAll(
-                LocalizationManager.getString("sort.id"),
-                LocalizationManager.getString("sort.name"),
-                LocalizationManager.getString("sort.impact_speed"),
-                LocalizationManager.getString("sort.owner")
-        );
-        if (sortIndex >= 0 && sortIndex < sortCombo.getItems().size()) {
-            sortCombo.getSelectionModel().select(sortIndex);
-        } else {
-            sortCombo.getSelectionModel().select(0);
-            sortIndex = 0;
-        }
-    }
-
     private void refreshLocalizedTexts() {
         welcomeLabel.setText(buildWelcomeText());
         tableLabel.setText(LocalizationManager.getString("label.table"));
@@ -737,6 +631,11 @@ public class MainController {
         sortLabel.setText(LocalizationManager.getString("label.sort_by"));
         tablePlaceholder.setText(LocalizationManager.getString("table.empty"));
         stage.setTitle(LocalizationManager.getString("app.title"));
+        languageLabel.setText(LocalizationManager.getString("language"));
+        filterLabel.setText(LocalizationManager.getString("filter.title"));
+        crudLabel.setText(LocalizationManager.getString("group.crud"));
+        actionLabel.setText(LocalizationManager.getString("group.actions"));
+        specialLabel.setText(LocalizationManager.getString("group.special"));
 
         nameFilterField.setPromptText(LocalizationManager.getString("filter.name"));
         ownerFilterField.setPromptText(LocalizationManager.getString("filter.owner"));
@@ -748,9 +647,6 @@ public class MainController {
         toDateFilter.setPromptText(LocalizationManager.getString("filter.to_date"));
         hasCarFilter.setText(LocalizationManager.getString("filter.has_car"));
         hasToothpickFilter.setText(LocalizationManager.getString("filter.has_toothpick"));
-
-        moodFilter.setConverter(createMoodConverter());
-        moodFilter.setPromptText(LocalizationManager.getString("mood.all"));
 
         addBtn.setText(LocalizationManager.getString("add"));
         editBtn.setText(LocalizationManager.getString("edit"));
@@ -766,7 +662,17 @@ public class MainController {
         addIfMinBtn.setText(LocalizationManager.getString("add_if_min"));
         addIfMaxBtn.setText(LocalizationManager.getString("add_if_max"));
 
-        refreshSortComboItems();
+        sortCombo.getItems().setAll(
+                LocalizationManager.getString("sort.id"),
+                LocalizationManager.getString("sort.name"),
+                LocalizationManager.getString("sort.impact_speed"),
+                LocalizationManager.getString("sort.owner")
+        );
+        sortCombo.getSelectionModel().select(sortIndex);
+
+        moodFilter.setConverter(createMoodConverter());
+        moodFilter.setPromptText(LocalizationManager.getString("mood.all"));
+        weaponFilter.setPromptText(LocalizationManager.getString("weapon.all"));
 
         for (TableColumn<HumanBeing, ?> col : tableColumns) {
             if (col.getUserData() instanceof String) {
@@ -788,9 +694,7 @@ public class MainController {
     }
 
     public void stop() {
-        if (scheduler != null) {
-            scheduler.shutdownNow();
-        }
+        if (scheduler != null) scheduler.shutdownNow();
         client.disconnect();
     }
 
@@ -805,33 +709,17 @@ public class MainController {
             return;
         }
 
-        final long attackerId = attacker.getId();
-        final long defenderId = defender.getId();
-
-        AnimationHelper.animateHit(arenaCanvas,
-                defender.getCoordinates().getX() * 50,
-                defender.getCoordinates().getY() * 50,
-                null);
-
         new Thread(() -> {
             try {
-                Request request = new Request(CommandType.ATTACK,
-                        new Object[]{attackerId, defenderId}, currentUser);
+                Request request = new Request(CommandType.ATTACK, new Object[]{attacker.getId(), defender.getId()}, currentUser);
                 client.sendRequest(request);
                 Response response = client.receiveResponse();
-
                 Platform.runLater(() -> {
                     showAlert(response.getMessage());
-
-                    if (response.isSuccess()) {
-                        loadData();
-                        arenaCanvas.redraw();
-                    }
+                    if (response.isSuccess()) loadData();
                 });
-
             } catch (Exception ex) {
-                Platform.runLater(() -> showAlert(
-                        LocalizationManager.getString("error.connection") + ": " + ex.getMessage()));
+                Platform.runLater(() -> showAlert(LocalizationManager.getString("error.connection") + ": " + ex.getMessage()));
             }
         }).start();
     }

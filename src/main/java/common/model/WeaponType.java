@@ -9,12 +9,11 @@ package common.model;
  * @since 2026-05-16
  */
 public enum WeaponType {
-    /** Молот. */
-    HAMMER,
-    /** Дробовик. */
-    SHOTGUN,
-    /** Нож. */
     KNIFE,
-    /** Бита. */
+    SWORD,
+    MACHINE_GUN,
+    LIGHTSABER,
+    HAMMER,
+    SHOTGUN,
     BAT;
 }

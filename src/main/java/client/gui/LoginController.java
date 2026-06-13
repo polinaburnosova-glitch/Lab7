@@ -21,6 +21,7 @@ public class LoginController {
 
     private final SimpleClient client;
     private Stage stage;
+    private Label languageLabel;
 
     public LoginController(SimpleClient client) {
         this.client = client;
@@ -38,9 +39,13 @@ public class LoginController {
         PasswordField passwordField = new PasswordField();
         passwordField.setPromptText(LocalizationManager.getString("password"));
 
+        languageLabel = new Label();
+        languageLabel.setText(LocalizationManager.getString("language"));
+
         ComboBox<String> langCombo = new ComboBox<>();
         langCombo.getItems().addAll(
                 LocalizationManager.LANG_RU,
+                LocalizationManager.LANG_EN,
                 LocalizationManager.LANG_DE,
                 LocalizationManager.LANG_HU,
                 LocalizationManager.LANG_ES
@@ -62,13 +67,12 @@ public class LoginController {
             updateTexts(titleLabel, usernameField, passwordField, loginBtn, registerBtn);
         });
 
-        Label languageLabel = new Label(LocalizationManager.getString("language") + ":");
-
-        VBox root = new VBox(15, titleLabel, usernameField, passwordField, languageLabel, langCombo, loginBtn, registerBtn);
+        VBox root = new VBox(15, titleLabel, usernameField, passwordField,
+                languageLabel, langCombo, loginBtn, registerBtn);
         root.setAlignment(Pos.CENTER);
         root.setPadding(new Insets(20));
 
-        Scene scene = new Scene(root, 380, 380);
+        Scene scene = new Scene(root, 380, 420);
         stage.setTitle(LocalizationManager.getString("app.title"));
         stage.setScene(scene);
         stage.show();
@@ -82,6 +86,10 @@ public class LoginController {
         loginBtn.setText(LocalizationManager.getString("login"));
         registerBtn.setText(LocalizationManager.getString("register"));
         stage.setTitle(LocalizationManager.getString("app.title"));
+
+        if (languageLabel != null) {
+            languageLabel.setText(LocalizationManager.getString("language"));
+        }
     }
 
     private void login(String username, String password) {
