@@ -20,7 +20,7 @@ import java.net.InetSocketAddress;
  * что позволяет передавать сериализованные объекты.</p>
  *
  * @author Полина
- * @version 1.0
+ * @version 1.1
  * @since 2026-04-20
  * @see Request
  * @see Response
@@ -130,9 +130,14 @@ public class SimpleClient {
             );
         }
 
-        outputStream.writeObject(request);
-        outputStream.flush();
-        outputStream.reset();
+        try {
+            outputStream.writeObject(request);
+            outputStream.flush();
+        } catch (IOException e) {
+            System.err.println("Ошибка при отправке запроса: " + e.getMessage());
+            connected = false;
+            throw e;
+        }
     }
 
     /**
