@@ -9,8 +9,8 @@ import java.io.Serializable;
 public class Coordinates implements Serializable{
     private static final long serialVersionUID = 1L;
 
-    private final Double x;
-    private final Float y;
+    private Double x;
+    private Float y;
 
     /**
      * Конструктор координат.
@@ -56,6 +56,14 @@ public class Coordinates implements Serializable{
     @Override
     public String toString() {
         return "x= " + x + ", y=" + y;
+    }
+
+    public void setX(double x) {
+        this.x = x;
+    }
+
+    public void setY(float y) {
+        this.y = y;
     }
 
 }

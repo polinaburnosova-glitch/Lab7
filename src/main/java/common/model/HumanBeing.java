@@ -31,7 +31,7 @@ public class HumanBeing implements Comparable<HumanBeing>, Serializable {
     /** Имя человека. Не может быть null или пустым. */
     private final String name;
     /** Координаты местоположения человека. Не могут быть null. */
-    private final Coordinates coordinates;
+    private Coordinates coordinates;
 
     /** Дата и время создания записи (генерируется автоматически). */
     private LocalDateTime creationDate;
@@ -41,7 +41,7 @@ public class HumanBeing implements Comparable<HumanBeing>, Serializable {
     /** Флаг, указывающий, есть ли у человека зубочистка. Не может быть null. */
     private final Boolean hasToothpick;
     /** Скорость удара. Максимальное значение - 657. */
-    private final float impactSpeed;
+    private float impactSpeed;
     /** Название саундтрека. Не может быть null или пустым. */
     private final String soundtrackName;
     /** Тип оружия. Не может быть null. */
@@ -282,6 +282,13 @@ public class HumanBeing implements Comparable<HumanBeing>, Serializable {
         return owner;
     }
 
+    public void setImpactSpeed(float impactSpeed) {
+        if (impactSpeed > 657) {
+            throw new IllegalArgumentException("impactSpeed не может быть больше 657");
+        }
+        this.impactSpeed = impactSpeed;
+    }
+
     /**
      * Сравнивает двух людей по ID.
      * Используется для сортировки коллекции по умолчанию.
@@ -311,5 +318,9 @@ public class HumanBeing implements Comparable<HumanBeing>, Serializable {
                 realHero, hasToothpick, impactSpeed, soundtrackName, weaponType,
                 mood, car.getCool() ? "cool" : "not cool"
         );
+    }
+
+    public void setCoordinates(Coordinates coordinates) {
+        this.coordinates = coordinates;
     }
 }

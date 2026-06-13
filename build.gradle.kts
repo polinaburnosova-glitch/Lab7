@@ -1,41 +1,56 @@
 plugins {
-    java
+    id("java")
+    id("application")
+    id("org.openjfx.javafxplugin") version "0.0.13"
 }
 
-group = "com.lab7"
+group = "ProgLabs"
 version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
 }
 
+javafx {
+    version = "21"
+    modules = listOf("javafx.controls", "javafx.fxml", "javafx.graphics", "javafx.base")
+}
+
 dependencies {
-    implementation("io.github.cdimascio:dotenv-java:3.0.0")
     implementation("org.postgresql:postgresql:42.7.3")
+    implementation("io.github.cdimascio:dotenv-java:3.0.0")
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
 }
 
-tasks.withType<Javadoc> {
-    options.encoding = "UTF-8"
-    (options as? StandardJavadocDocletOptions)?.let {
-        it.charSet = "UTF-8"
-        it.docEncoding = "UTF-8"
-        it.addStringOption("Xdoclint:none", "-quiet")
-    }
-    isFailOnError = false
+application {
+    mainClass.set("client.gui.Launcher")
 }
 
-tasks.jar {
-    manifest {
-        attributes["Main-Class"] to "server.ServerMain"
-    }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from(sourceSets.main.get().output)
-    dependsOn(configurations.runtimeClasspath)
-    from({
-        configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
-    })
+tasks.register<JavaExec>("runServer") {
+    mainClass.set("server.ServerMain")
+    classpath = sourceSets.main.get().runtimeClasspath
+    systemProperty("file.encoding", "UTF-8")
+}
+
+tasks.register<JavaExec>("runClient") {
+    mainClass.set("client.gui.Launcher")
+    classpath = sourceSets.main.get().runtimeClasspath
+    systemProperty("file.encoding", "UTF-8")
+
+    val javafxModules = sourceSets.main.get().runtimeClasspath
+        .filter { it.absolutePath.contains("javafx") && it.absolutePath.endsWith(".jar") }
+        .joinToString(File.pathSeparator)
+
+    jvmArgs = listOf(
+        "--module-path", javafxModules,
+        "--add-modules", "javafx.controls,javafx.fxml,javafx.graphics,javafx.base"
+    )
 }

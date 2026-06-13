@@ -4,18 +4,42 @@ import common.model.HumanBeing;
 import common.model.Mood;
 import common.model.User;
 import common.network.*;
+import common.model.Coordinates;
+import server.database.HumanBeingDAO;
 import server.database.UserDAO;
 import server.manager.CollectionManager;
+import java.util.Collections;
 import java.util.Deque;
 
+/**
+ * Исполнитель команд на сервере.
+ * Получает запрос от клиента, выполняет соответствующую операцию
+ * над коллекцией через CollectionManager и формирует ответ.
+ *
+ * @author Полина
+ * @version 2.0
+ * @since 2026-05-16
+ */
 public class CommandExecutor {
 
+    /** Менеджер коллекции для выполнения операций. */
     private final CollectionManager collectionManager;
 
+    /**
+     * Конструктор исполнителя команд.
+     *
+     * @param collectionManager менеджер коллекции
+     */
     public CommandExecutor(CollectionManager collectionManager) {
         this.collectionManager = collectionManager;
     }
 
+    /**
+     * Выполняет команду из запроса и возвращает ответ.
+     *
+     * @param request запрос от клиента
+     * @return ответ сервера
+     */
     public Response execute(Request request) {
         CommandType type = request.getCommandType();
         Object[] args = request.getArgs();
@@ -83,10 +107,18 @@ public class CommandExecutor {
                 case MIN_BY_ID:
                     return ok(collectionManager.minById());
 
+                case CHECK_OWNERSHIP:
+                    return handleCheckOwnership(args, user);
+
                 case REMOVE_BY_ID:
                     Long idToRemove = getArg(args, 0, Long.class);
                     if (idToRemove == null) {
                         return validationError("не указан id для удаления");
+                    }
+                    Response removeAccess = verifyOwnershipAccess(
+                            idToRemove, user.getUsername(), "Нет прав на удаление этого объекта");
+                    if (removeAccess != null) {
+                        return removeAccess;
                     }
                     boolean deleted = collectionManager.removeById(idToRemove, user.getUsername());
                     if (deleted) {
@@ -103,11 +135,19 @@ public class CommandExecutor {
 
                 case UPDATE:
                     Long updateId = getArg(args, 0, Long.class);
-                    HumanBeing updateHuman = getArg(args, 1, HumanBeing.class);
-                    if (updateId == null || updateHuman == null) {
-                        return validationError("не указан id или объект для обновления");
+                    if (updateId == null) {
+                        return validationError("не указан id для обновления");
                     }
-                    boolean updated = collectionManager.update(updateId, updateHuman, user.getUsername());
+                    Response updateAccess = verifyOwnershipAccess(
+                            updateId, user.getUsername(), "Нет прав на изменение этого объекта");
+                    if (updateAccess != null) {
+                        return updateAccess;
+                    }
+                    HumanBeing updateHuman = getArg(args, 1, HumanBeing.class);
+                    if (updateHuman == null) {
+                        return validationError("не указан объект для обновления");
+                    }
+                    boolean updated = collectionManager.update(updateHuman,user.getUsername());
                     if (updated) {
                         return ok("Элемент с ID " + updateId + " успешно обновлён");
                     } else {
@@ -147,6 +187,68 @@ public class CommandExecutor {
                 case EXECUTE_SCRIPT:
                     return ok("Команда выполнена");
 
+                case ATTACK:
+                    Long attackerId = getArg(args, 0, Long.class);
+                    Long defenderId = getArg(args, 1, Long.class);
+                    if (attackerId == null || defenderId == null) {
+                        return validationError("не указаны ID атакующего и защитника");
+                    }
+
+                    if (!collectionManager.existsAndOwnedBy(attackerId, user.getUsername())) {
+                        return new Response(ResponseStatus.FORBIDDEN, "Можно атаковать только своим героем");
+                    }
+
+                    HumanBeing attacker = collectionManager.findById(attackerId);
+                    HumanBeing defender = collectionManager.findById(defenderId);
+
+                    if (attacker == null || defender == null) {
+                        return notFound("Герой не найден");
+                    }
+
+                    int attackerPower = (int) attacker.getImpactSpeed();
+                    int defenderPower = (int) defender.getImpactSpeed();
+
+                    double chance = (double) attackerPower / (attackerPower + defenderPower);
+                    boolean attackerWins = Math.random() < chance;
+
+                    Coordinates attackerCoords = new Coordinates(
+                            attacker.getCoordinates().getX(),
+                            attacker.getCoordinates().getY()
+                    );
+                    Coordinates defenderCoords = new Coordinates(
+                            defender.getCoordinates().getX(),
+                            defender.getCoordinates().getY()
+                    );
+
+                    if (attackerWins) {
+                        attacker.setImpactSpeed(attackerPower + 10);
+                        defender.setImpactSpeed(Math.max(1, defenderPower / 2));
+
+                        attacker.setCoordinates(defenderCoords);
+                        defender.setCoordinates(attackerCoords);
+                    } else {
+                        defender.setImpactSpeed(defenderPower + 10);
+                        attacker.setImpactSpeed(Math.max(1, attackerPower / 2));
+
+                        defender.setCoordinates(attackerCoords);
+                        attacker.setCoordinates(defenderCoords);
+                    }
+
+                    boolean attackerUpdated = HumanBeingDAO.update(attacker, attacker.getOwner());
+                    boolean defenderUpdated = HumanBeingDAO.update(defender, defender.getOwner());
+
+                    if (!attackerUpdated || !defenderUpdated) {
+                        return serverError("Ошибка сохранения результатов битвы");
+                    }
+
+                    collectionManager.update(attacker, attacker.getOwner());
+                    collectionManager.update(defender, defender.getOwner());
+
+                    return ok("Битва окончена! " + attacker.getName() + " " +
+                            (attackerWins ? "победил" : "проиграл") +
+                            ". Новые силы: " + attacker.getName() + "=" + attacker.getImpactSpeed() +
+                            ", " + defender.getName() + "=" + defender.getImpactSpeed());
+
                 default:
                     return unknownCommand(type);
             }
@@ -155,6 +257,12 @@ public class CommandExecutor {
         }
     }
 
+    /**
+     * Обрабатывает команду LOGIN.
+     *
+     * @param args аргументы команды
+     * @return ответ с объектом User при успехе
+     */
     private Response handleLogin(Object[] args) {
         if (args == null || args.length < 2) {
             return validationError("Не указан логин или пароль");
@@ -164,11 +272,18 @@ public class CommandExecutor {
 
         User user = UserDAO.login(username, password);
         if (user == null) {
+            System.out.println("Результат: пользователь НЕ найден");
             return new Response(ResponseStatus.UNAUTHORIZED, "Неверный логин или пароль");
         }
-        return new Response(ResponseStatus.OK, "Авторизация успешна", null);
+        return new Response(ResponseStatus.OK, "Авторизация успешна", Collections.singletonList(user));
     }
 
+    /**
+     * Обрабатывает команду REGISTER.
+     *
+     * @param args аргументы команды
+     * @return ответ о результате регистрации
+     */
     private Response handleRegister(Object[] args) {
         if (args == null || args.length < 2) {
             return validationError("Не указан логин или пароль");
@@ -187,6 +302,41 @@ public class CommandExecutor {
         return ok("Регистрация успешна. Теперь войдите через LOGIN");
     }
 
+    /**
+     * Безопасно извлекает аргумент из массива по индексу.
+     *
+     * @param args массив аргументов
+     * @param index индекс аргумента
+     * @param type ожидаемый тип
+     * @param <T> тип аргумента
+     * @return аргумент или null
+     */
+    private Response handleCheckOwnership(Object[] args, User user) {
+        Long id = getArg(args, 0, Long.class);
+        String forbiddenMessage = getArg(args, 1, String.class);
+        if (forbiddenMessage == null) {
+            forbiddenMessage = "Нет прав на этот объект";
+        }
+        Response denied = verifyOwnershipAccess(id, user.getUsername(), forbiddenMessage);
+        return denied != null ? denied : ok("");
+    }
+
+    /**
+     * @return ответ с ошибкой или {@code null}, если доступ разрешён
+     */
+    private Response verifyOwnershipAccess(Long id, String username, String forbiddenMessage) {
+        if (id == null) {
+            return validationError("не указан id");
+        }
+        if (!collectionManager.existsById(id)) {
+            return notFound("Элемент с ID " + id + " не найден");
+        }
+        if (!collectionManager.existsAndOwnedBy(id, username)) {
+            return new Response(ResponseStatus.FORBIDDEN, forbiddenMessage);
+        }
+        return null;
+    }
+
     @SuppressWarnings("unchecked")
     private <T> T getArg(Object[] args, int index, Class<T> type) {
         if (args != null && args.length > index && type.isInstance(args[index])) {
@@ -195,26 +345,62 @@ public class CommandExecutor {
         return null;
     }
 
+    /**
+     * Создаёт успешный ответ.
+     *
+     * @param message текст сообщения
+     * @return объект Response
+     */
     private Response ok(String message) {
         return new Response(ResponseStatus.OK, message);
     }
 
+    /**
+     * Создаёт ответ-предупреждение.
+     *
+     * @param message текст сообщения
+     * @return объект Response
+     */
     private Response warning(String message) {
         return new Response(ResponseStatus.WARNING, message);
     }
 
+    /**
+     * Создаёт ответ "не найдено".
+     *
+     * @param message текст сообщения
+     * @return объект Response
+     */
     private Response notFound(String message) {
         return new Response(ResponseStatus.NOT_FOUND, message);
     }
 
+    /**
+     * Создаёт ответ с ошибкой валидации.
+     *
+     * @param message текст сообщения
+     * @return объект Response
+     */
     private Response validationError(String message) {
         return new Response(ResponseStatus.VALIDATION_ERROR, "Ошибка: " + message);
     }
 
+    /**
+     * Создаёт ответ с ошибкой сервера.
+     *
+     * @param message текст сообщения
+     * @return объект Response
+     */
     private Response serverError(String message) {
         return new Response(ResponseStatus.SERVER_ERROR, message);
     }
 
+    /**
+     * Создаёт ответ "неизвестная команда".
+     *
+     * @param type тип неизвестной команды
+     * @return объект Response
+     */
     private Response unknownCommand(CommandType type) {
         return new Response(ResponseStatus.UNKNOWN_COMMAND, "Команда не реализована: " + type);
     }

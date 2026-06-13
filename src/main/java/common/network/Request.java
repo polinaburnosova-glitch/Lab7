@@ -6,24 +6,12 @@ import common.model.User;
 
 /**
  * Класс, представляющий запрос от клиента к серверу.
- *
- * <p>Запрос содержит тип команды и массив аргументов, необходимых для её выполнения.
- * Объекты Request сериализуются и передаются по сети между клиентом и сервером.</p>
- *
- * <p>Аргументы могут быть различных типов в зависимости от команды:
- * <ul>
- *   <li>Для команд ADD, ADD_IF_MIN, ADD_IF_MAX - массив с одним объектом HumanBeing</li>
- *   <li>Для команды UPDATE - массив [Long id, HumanBeing human]</li>
- *   <li>Для команды REMOVE_BY_ID - массив с одним Long значением</li>
- *   <li>Для FILTER_BY_MOOD - массив с одним объектом Mood</li>
- *   <li>Для FILTER_STARTS_WITH_SOUNDTRACK_NAME - массив с одной строкой</li>
- *   <li>Для команд без аргументов (HELP, INFO, SHOW, CLEAR и др.) - null</li>
- * </ul>
- * </p>
+ * Содержит тип команды, массив аргументов и пользователя-отправителя.
+ * Объекты Request сериализуются и передаются по сети между клиентом и сервером.
  *
  * @author Полина
- * @version 1.0
- * @since 2026-04-20
+ * @version 2.0
+ * @since 2026-05-16
  * @see CommandType
  * @see Response
  * @see common.model.HumanBeing
@@ -31,7 +19,7 @@ import common.model.User;
 public class Request implements Serializable {
 
     /** Версия для сериализации, обеспечивающая совместимость версий. */
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
     /** Тип команды, определяющий действие, которое нужно выполнить на сервере. */
     private final CommandType commandType;
@@ -43,15 +31,16 @@ public class Request implements Serializable {
      */
     private final Object[] args;
 
+    /** Пользователь, отправивший запрос. */
+    private final User user;
+
     /**
      * Конструктор запроса.
      *
      * @param commandType тип команды (не может быть null)
      * @param args массив аргументов команды (может быть null)
+     * @param user пользователь, отправивший запрос
      */
-
-    private final User user;
-
     public Request(CommandType commandType, Object[] args, User user) {
         this.commandType = commandType;
         this.args = args;
@@ -77,12 +66,19 @@ public class Request implements Serializable {
     }
 
     /**
+     * Возвращает пользователя, отправившего запрос.
+     *
+     * @return пользователь или null, если запрос неавторизованный
+     */
+    public User getUser() {
+        return user;
+    }
+
+    /**
      * Возвращает строковое представление запроса.
      *
-     * @return строка с типом команды и аргументами
+     * @return строка с типом команды, аргументами и пользователем
      */
-    public User getUser() { return user; }
-
     @Override
     public String toString() {
         return "Request(" +

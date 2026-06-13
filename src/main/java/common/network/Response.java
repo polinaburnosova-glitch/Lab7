@@ -5,21 +5,13 @@ import java.util.List;
 
 /**
  * Класс, представляющий ответ от сервера клиенту.
- *
- * <p>Содержит результат выполнения команды на сервере: флаг успешности,
+ * Содержит результат выполнения команды на сервере: статус,
  * текстовое сообщение и опциональные данные (например, коллекцию объектов
- * для команды SHOW). Объекты Response сериализуются и передаются по сети.</p>
- *
- * <p>Ответ может быть двух типов:
- * <ul>
- *   <li>Успешный (success=true) с сообщением о результате выполнения</li>
- *   <li>Ошибочный (success=false) с сообщением об ошибке</li>
- * </ul>
- * </p>
+ * для команды SHOW). Объекты Response сериализуются и передаются по сети.
  *
  * @author Полина
- * @version 1.0
- * @since 2026-04-20
+ * @version 2.0
+ * @since 2026-05-16
  * @see Request
  * @see common.model.HumanBeing
  */
@@ -28,10 +20,11 @@ public class Response implements Serializable {
     /** Версия для сериализации, обеспечивающая совместимость версий. */
     private static final long serialVersionUID = 2L;
 
+    /** Статус ответа. */
+    private final ResponseStatus status;
+
     /** Текстовое сообщение с результатом выполнения или описанием ошибки. */
     private final String message;
-
-    private final ResponseStatus status;
 
     /**
      * Дополнительные данные, передаваемые клиенту.
@@ -43,7 +36,7 @@ public class Response implements Serializable {
     /**
      * Конструктор ответа с данными.
      *
-     * @param success флаг успешности выполнения команды
+     * @param status статус выполнения команды
      * @param message текстовое сообщение о результате
      * @param data список данных (например, коллекция объектов для SHOW)
      */
@@ -56,7 +49,7 @@ public class Response implements Serializable {
     /**
      * Конструктор ответа без данных.
      *
-     * @param success флаг успешности выполнения команды
+     * @param status статус выполнения команды
      * @param message текстовое сообщение о результате
      */
     public Response(ResponseStatus status, String message) {
@@ -70,6 +63,15 @@ public class Response implements Serializable {
      */
     public boolean isSuccess() {
         return status == ResponseStatus.OK;
+    }
+
+    /**
+     * Возвращает статус ответа.
+     *
+     * @return статус ответа
+     */
+    public ResponseStatus getStatus() {
+        return status;
     }
 
     /**
@@ -88,9 +90,5 @@ public class Response implements Serializable {
      */
     public List<?> getData() {
         return data;
-    }
-
-    public ResponseStatus getStatus() {
-        return status;
     }
 }
