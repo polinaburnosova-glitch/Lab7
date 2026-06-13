@@ -58,7 +58,7 @@ public final class LocalizationManager {
                 currentLanguageName = LANG_RU;
                 break;
         }
-        bundle = ResourceBundle.getBundle(BASE_NAME, currentLocale, new Utf8Control());
+        bundle = ResourceBundle.getBundle("client.gui.localization.Messages", currentLocale, new Utf8Control());
     }
 
     private static final class Utf8Control extends ResourceBundle.Control {

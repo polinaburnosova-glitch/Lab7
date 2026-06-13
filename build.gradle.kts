@@ -13,7 +13,7 @@ repositories {
 
 javafx {
     version = "21"
-    modules = listOf("javafx.controls", "javafx.fxml", "javafx.graphics", "javafx.base")
+    modules = listOf("javafx.controls", "javafx.fxml")
 }
 
 dependencies {
@@ -21,27 +21,25 @@ dependencies {
     implementation("io.github.cdimascio:dotenv-java:3.0.0")
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+application {
+    mainClass.set("client.gui.Launcher")
+}
+
+tasks.register<JavaExec>("runClient") {
+    mainClass.set("client.gui.Launcher")
+    classpath = sourceSets.main.get().runtimeClasspath
+
+    // Добавляем JavaFX модули
+    jvmArgs = listOf(
+        "--module-path", classpath.asPath,
+        "--add-modules", "javafx.controls,javafx.fxml,javafx.graphics,javafx.base"
+    )
 }
 
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
 }
 
-application {
-    mainClass.set("client.gui.Launcher")
-}
-
-tasks.register<JavaExec>("runServer") {
-    mainClass.set("server.ServerMain")
-    classpath = sourceSets.main.get().runtimeClasspath
-    group = "application"
-}
-
-tasks.register<JavaExec>("runClient") {
-    mainClass.set("client.gui.Launcher")
-    classpath = sourceSets.main.get().runtimeClasspath
-    group = "application"
+tasks.withType<JavaExec> {
+    systemProperty("file.encoding", "UTF-8")
 }
