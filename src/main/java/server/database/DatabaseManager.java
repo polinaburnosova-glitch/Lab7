@@ -27,7 +27,7 @@ public class DatabaseManager {
         String host = dotenv.get("DB_HOST", "pg");
         String port = dotenv.get("DB_PORT", "5432");
         String dbName = dotenv.get("DB_NAME", "studs");
-        return "jdbc:postgresql://" + host + ":" + port + "/" + dbName;
+        return "jdbc:postgresql://" + host + ":" + port + "/" + dbName + "?allowEncodingChanges=true";
     }
 
     /**
